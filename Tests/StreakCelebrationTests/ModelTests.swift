@@ -53,12 +53,39 @@ struct StreakWeekTests {
     }
 }
 
+struct StreakMilestoneTests {
+    @Test("Heads for the next milestone on the ladder", arguments: [
+        (1, 3), (2, 3), (3, 3), (4, 7), (10, 14), (29, 30), (100, 100), (300, 300), (364, 365),
+    ])
+    func target(streak: Int, expected: Int) {
+        #expect(StreakMilestone(streak: streak).target == expected)
+    }
+
+    @Test("Counts in hundreds after a year")
+    func afterAYear() {
+        #expect(StreakMilestone(streak: 366).target == 400)
+        #expect(StreakMilestone(streak: 400).isReached)
+        #expect(StreakMilestone(streak: 401).target == 500)
+        #expect(StreakMilestone(streak: 365).next == 400)
+    }
+
+    @Test("Knows when one is reached and what comes next")
+    func reached() {
+        let week = StreakMilestone(streak: 7)
+        #expect(week.isReached)
+        #expect(week.daysLeft == 0)
+        #expect(week.next == 14)
+        #expect(!StreakMilestone(streak: 8).isReached)
+        #expect(StreakMilestone(streak: 8).daysLeft == 6)
+    }
+}
+
 struct StreakCopyTests {
-    @Test("Messages call out milestones")
-    func milestones() {
+    @Test("Messages point at the next milestone")
+    func messages() {
         #expect(StreakCopy.message(for: 1).contains("Day one"))
-        #expect(StreakCopy.message(for: 7).contains("week"))
-        #expect(StreakCopy.message(for: 40).contains("40 days"))
-        #expect(StreakCopy.message(for: 13) == StreakCopy.message(for: 14))
+        #expect(StreakCopy.message(for: 10) == "4 more days to your 14-day milestone.")
+        #expect(StreakCopy.message(for: 13) == "1 more day to your 14-day milestone.")
+        #expect(StreakCopy.message(for: 7) == "You reached the 7-day milestone. Next stop: 14 days.")
     }
 }

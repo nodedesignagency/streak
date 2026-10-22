@@ -1,95 +1,52 @@
 import SwiftUI
 
-/// Colours for the celebration, tuned separately for light and dark appearance.
+/// Colours for the celebration. It always plays on a dark, warm stage so the gold reads like metal.
 struct StreakPalette {
     var background: Color
+    var dotGrid: Color
     var ink: Color
     var secondaryInk: Color
+    var tertiaryInk: Color
     var track: Color
 
-    var flame: [Color]
-    var flameCore: [Color]
-    var dormant: [Color]
-    var dormantCore: Color
+    /// Light to deep, top to bottom of the gold face.
+    var gold: [Color]
+    var goldHighlight: Color
+    var goldDeep: Color
+    var graphite: [Color]
+    var graphiteDeep: Color
 
     var number: [Color]
     var dormantNumber: [Color]
-    var accent: Color
     var glow: Color
     var particles: [Color]
 
-    /// Orb colour stops for heat 0 (ash), 1 (ember) and 2 (gold).
-    var orbStops: [RGB]
-
-    static func standard(for scheme: ColorScheme) -> StreakPalette {
-        let isDark = scheme == .dark
-        return StreakPalette(
-            background: isDark ? Color(hex: 0x121214) : Color(hex: 0xFFFDF8),
-            ink: isDark ? .white : Color(hex: 0x1F1F24),
-            secondaryInk: isDark ? Color(hex: 0x9A9AA3) : Color(hex: 0x86868F),
-            track: isDark ? Color(hex: 0x2A2A30) : Color(hex: 0xEEEEF2),
-            flame: [Color(hex: 0xFFE36E), Color(hex: 0xFFC727), Color(hex: 0xFFA412)],
-            flameCore: [Color(hex: 0xFFFDF0), Color(hex: 0xFFF1B8)],
-            dormant: isDark
-                ? [Color(hex: 0x4A4B52), Color(hex: 0x3A3B41)]
-                : [Color(hex: 0xDDDFE4), Color(hex: 0xCDD0D6)],
-            dormantCore: isDark ? Color(hex: 0x5E6068) : Color(hex: 0xF4F5F7),
-            number: [Color(hex: 0xFFB21E), Color(hex: 0xFF8A00)],
-            dormantNumber: isDark
-                ? [Color(hex: 0x55565D), Color(hex: 0x46474D)]
-                : [Color(hex: 0xD9DBE0), Color(hex: 0xC9CCD2)],
-            accent: Color(hex: 0xFF9500),
-            glow: Color(hex: 0xFFC83D).opacity(isDark ? 0.55 : 1),
-            particles: [Color(hex: 0xFFC400), Color(hex: 0xFF9F0A), Color(hex: 0xFFE15A)],
-            orbStops: [
-                isDark ? RGB(hex: 0x4A4B52) : RGB(hex: 0xCDD0D6),
-                RGB(hex: 0xFF9F0A),
-                RGB(hex: 0xFFC727),
-            ]
-        )
-    }
-
-    func orbColor(heat: Double) -> Color {
-        let clamped = min(max(heat, 0), Double(orbStops.count - 1))
-        let lower = Int(clamped.rounded(.down))
-        let upper = min(lower + 1, orbStops.count - 1)
-        return orbStops[lower].mixed(with: orbStops[upper], by: clamped - Double(lower)).color
-    }
-}
-
-/// A plain sRGB triple that can be interpolated, unlike `Color`.
-struct RGB {
-    var red: Double
-    var green: Double
-    var blue: Double
-
-    init(hex: UInt32) {
-        red = Double((hex >> 16) & 0xFF) / 255
-        green = Double((hex >> 8) & 0xFF) / 255
-        blue = Double(hex & 0xFF) / 255
-    }
-
-    private init(red: Double, green: Double, blue: Double) {
-        self.red = red
-        self.green = green
-        self.blue = blue
-    }
-
-    func mixed(with other: RGB, by amount: Double) -> RGB {
-        RGB(
-            red: red + (other.red - red) * amount,
-            green: green + (other.green - green) * amount,
-            blue: blue + (other.blue - blue) * amount
-        )
-    }
-
-    var color: Color {
-        Color(.sRGB, red: red, green: green, blue: blue)
-    }
+    static let night = StreakPalette(
+        background: Color(hex: 0x0D0C0B),
+        dotGrid: Color(hex: 0xF7F3EC).opacity(0.09),
+        ink: Color(hex: 0xF7F3EC),
+        secondaryInk: Color(hex: 0xF7F3EC).opacity(0.6),
+        tertiaryInk: Color(hex: 0xF7F3EC).opacity(0.3),
+        track: Color(hex: 0xF7F3EC).opacity(0.09),
+        gold: [Color(hex: 0xFBE3A1), Color(hex: 0xF0B952), Color(hex: 0xC27F22)],
+        goldHighlight: Color(hex: 0xFFF3D1),
+        goldDeep: Color(hex: 0x9A6216),
+        graphite: [Color(hex: 0x46423E), Color(hex: 0x312E2B), Color(hex: 0x211F1D)],
+        graphiteDeep: Color(hex: 0x181715),
+        number: [Color(hex: 0xFDE7AE), Color(hex: 0xE9A944)],
+        dormantNumber: [Color(hex: 0x4A4743), Color(hex: 0x3A3734)],
+        glow: Color(hex: 0xFFB547),
+        particles: [Color(hex: 0xFFE6A6), Color(hex: 0xF4C25E), Color(hex: 0xFFFFFF)]
+    )
 }
 
 extension Color {
     init(hex: UInt32) {
-        self = RGB(hex: hex).color
+        self.init(
+            .sRGB,
+            red: Double((hex >> 16) & 0xFF) / 255,
+            green: Double((hex >> 8) & 0xFF) / 255,
+            blue: Double(hex & 0xFF) / 255
+        )
     }
 }

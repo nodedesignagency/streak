@@ -55,114 +55,141 @@ struct TrackTests {
     }
 }
 
-struct IgnitionTimelineTests {
-    @Test("Opens on the dormant flame")
+struct CelebrationTimelineTests {
+    @Test("Opens on the dormant medallion with an empty ring")
     func opensDormant() {
-        let frame = IgnitionTimeline.frame(at: 0)
-        #expect(frame.dormantOpacity == 1)
-        #expect(frame.orbOpacity == 0)
-        #expect(frame.flameOpacity == 0)
-        #expect(frame.waveOpacity == 0)
-        #expect(frame.glow == 0)
-    }
-
-    @Test("The swollen orb bursts exactly where the flash and shockwave are drawn")
-    func burstLinesUp() {
-        let frame = IgnitionTimeline.frame(at: IgnitionTimeline.burst - 1e-6)
-        let center = HeroMetrics.baseline - frame.orbLift - HeroMetrics.orbDiameter * frame.orbScaleY / 2
-        #expect(abs(center - HeroMetrics.burstY) < 0.5)
-    }
-
-    @Test("The squashed flame hands over to an orb of about the same size")
-    func squashHandover() {
-        let frame = IgnitionTimeline.frame(at: IgnitionTimeline.morph)
-        let flameHeight = HeroMetrics.flameHeight * frame.dormantScaleY
-        let orbHeight = HeroMetrics.orbDiameter * frame.orbScaleY
-        #expect(abs(flameHeight - orbHeight) < 4)
-    }
-
-    @Test("The seed lands on the baseline as the flame ignites")
-    func seedLands() {
-        let frame = IgnitionTimeline.frame(at: IgnitionTimeline.ignite)
-        #expect(abs(frame.seedLift) < 0.01)
-    }
-
-    @Test("Settles on a lit flame with nothing else showing")
-    func settles() {
-        let frame = IgnitionTimeline.frame(at: IgnitionTimeline.restingTime, idleMotion: false)
-        #expect(frame.flameOpacity == 1)
-        #expect(abs(frame.flameScaleX - 1) < 0.01)
-        #expect(abs(frame.flameScaleY - 1) < 0.01)
-        #expect(frame.flameSway == 0)
-        #expect(frame.dormantOpacity == 0)
-        #expect(frame.orbOpacity == 0)
-        #expect(frame.seedOpacity == 0)
-        #expect(frame.waveOpacity == 0)
-        #expect(frame.flashOpacity == 0)
-        #expect(frame.cutoutOpacity == 0)
+        let frame = CelebrationTimeline.frame(at: 0)
+        #expect(!frame.showsGoldFace)
+        #expect(frame.flipAngle == 0)
+        #expect(frame.ringProgress == 0)
+        #expect(frame.cometOpacity == 0)
         #expect(frame.haloOpacity == 0)
+    }
+
+    @Test("The ring closes as the flip begins")
+    func ringCloses() {
+        #expect(CelebrationTimeline.frame(at: CelebrationTimeline.arrive).ringProgress == 1)
+        #expect(CelebrationTimeline.frame(at: CelebrationTimeline.arrive).flipAngle == 0)
+    }
+
+    @Test("The gold face takes over exactly at the reveal beat")
+    func revealsGold() {
+        #expect(!CelebrationTimeline.frame(at: CelebrationTimeline.reveal - 0.01).showsGoldFace)
+        #expect(CelebrationTimeline.frame(at: CelebrationTimeline.reveal + 0.01).showsGoldFace)
+    }
+
+    @Test("The medallion is back down when it lands")
+    func lands() {
+        let frame = CelebrationTimeline.frame(at: CelebrationTimeline.land)
+        #expect(abs(frame.medallionLift) < 4)
+        #expect(frame.haloOpacity > 0.5)
+    }
+
+    @Test("Settles on the gold face inside a closed ring")
+    func settles() {
+        let frame = CelebrationTimeline.frame(at: CelebrationTimeline.restingTime, idleMotion: false)
+        #expect(frame.showsGoldFace)
+        #expect(abs(frame.flipAngle - 180) < 1)
+        #expect(abs(frame.medallionScale - 1) < 0.01)
+        #expect(abs(frame.medallionLift) < 0.1)
+        #expect(frame.ringProgress == 1)
+        #expect(frame.cometOpacity == 0)
+        #expect(frame.haloOpacity == 0)
+        #expect(abs(frame.shinePosition) >= 1.3)
         #expect(frame.glow == 1)
     }
 
-    @Test("Idle flicker stays subtle")
-    func flickerIsSubtle() {
-        for time in stride(from: 3.0, through: 8.0, by: 0.01) {
-            let frame = IgnitionTimeline.frame(at: time)
-            #expect(abs(frame.flameScaleY - 1) < 0.04)
-            #expect(abs(frame.flameSway) <= 1)
+    @Test("With idle motion the medallion glints again later")
+    func glintsAgain() {
+        let laterGlint = stride(from: CelebrationTimeline.restingTime, through: 12, by: 0.05).contains {
+            abs(CelebrationTimeline.frame(at: $0).shinePosition) < 0.2
+        }
+        #expect(laterGlint)
+    }
+
+    @Test("Idle floating stays subtle")
+    func floatIsSubtle() {
+        for time in stride(from: 3.0, through: 10.0, by: 0.01) {
+            #expect(abs(CelebrationTimeline.frame(at: time).medallionLift) <= 3.5)
         }
     }
 
     @Test("Beats run in order and finish before the resting time")
     func beatsInOrder() {
         let beats = [
-            IgnitionTimeline.anticipate, IgnitionTimeline.squash, IgnitionTimeline.morph, IgnitionTimeline.launch,
-            IgnitionTimeline.swell, IgnitionTimeline.burst, IgnitionTimeline.countUp, IgnitionTimeline.ignite,
-            IgnitionTimeline.details, IgnitionTimeline.progress, IgnitionTimeline.actions,
+            CelebrationTimeline.anticipate, CelebrationTimeline.charge, CelebrationTimeline.arrive,
+            CelebrationTimeline.reveal, CelebrationTimeline.land, CelebrationTimeline.shine,
+            CelebrationTimeline.details, CelebrationTimeline.week, CelebrationTimeline.actions,
         ]
         #expect(beats == beats.sorted())
-        #expect(IgnitionTimeline.actions < IgnitionTimeline.restingTime)
+        #expect(CelebrationTimeline.actions < CelebrationTimeline.restingTime)
     }
 
-    @Test("The week fills once the bar is on screen")
-    func weekFills() {
-        #expect(IgnitionTimeline.weekProgress(at: IgnitionTimeline.progress) == 0)
-        #expect(IgnitionTimeline.weekProgress(at: IgnitionTimeline.actions) == 1)
-        #expect(IgnitionTimeline.weekProgress(at: IgnitionTimeline.restingTime) == 1)
+    @Test("Week dots pop in left to right and are all in place by the resting time")
+    func dotsStagger() {
+        for time in stride(from: CelebrationTimeline.week, through: CelebrationTimeline.restingTime, by: 0.02) {
+            for index in 0..<6 {
+                // No dot starts before the one to its left.
+                let current = CelebrationTimeline.dotAppearance(index: index, at: time)
+                let next = CelebrationTimeline.dotAppearance(index: index + 1, at: time)
+                #expect(next == 0 || current > 0)
+            }
+        }
+        for index in 0..<7 {
+            #expect(CelebrationTimeline.dotAppearance(index: index, at: CelebrationTimeline.week) == 0)
+            #expect(CelebrationTimeline.dotAppearance(index: index, at: CelebrationTimeline.restingTime) == 1)
+            #expect(CelebrationTimeline.todayPulse(index: index, at: CelebrationTimeline.restingTime) == 1)
+        }
+    }
+}
+
+struct CelebrationClockTests {
+    @Test("Waits at zero until started, and jumps to the end for Reduce Motion")
+    func elapsed() {
+        let now = Date()
+        #expect(CelebrationClock(start: nil, reduceMotion: false).elapsed(at: now) == 0)
+        #expect(CelebrationClock(start: now.addingTimeInterval(-2), reduceMotion: false).elapsed(at: now) == 2)
+        #expect(CelebrationClock(start: now, reduceMotion: true).elapsed(at: now) == CelebrationTimeline.restingTime)
     }
 }
 
 struct ParticleFieldTests {
-    @Test("Sparks only exist after the burst and then burn out")
-    func sparkLifetime() {
-        #expect(ParticleField.sparks(at: -0.01).isEmpty)
-        #expect(ParticleField.sparks(at: 0).count == ParticleField.sparkCount)
-        #expect(ParticleField.sparks(at: ParticleField.sparkMaxLifetime).isEmpty)
+    @Test("Dust only exists after landing and then settles")
+    func dustLifetime() {
+        #expect(ParticleField.dust(at: -0.01, radius: 78).isEmpty)
+        #expect(ParticleField.dust(at: 0, radius: 78).count == ParticleField.dustCount)
+        #expect(ParticleField.dust(at: ParticleField.dustMaxLifetime, radius: 78).isEmpty)
     }
 
-    @Test("Sparks fly outwards")
-    func sparksSpread() {
-        let spread = { (particles: [Particle]) in
-            particles.map { ($0.x * $0.x + $0.y * $0.y).squareRoot() }.max() ?? 0
+    @Test("Dust starts at the rim and drifts outwards")
+    func dustSpreads() {
+        let distances = { (particles: [Particle]) in
+            particles.map { ($0.x * $0.x + $0.y * $0.y).squareRoot() }
         }
-        #expect(spread(ParticleField.sparks(at: 0.3)) > spread(ParticleField.sparks(at: 0.05)))
+        #expect(distances(ParticleField.dust(at: 0, radius: 78)).allSatisfy { $0 > 60 })
+        let early = distances(ParticleField.dust(at: 0.05, radius: 78)).max() ?? 0
+        let later = distances(ParticleField.dust(at: 0.6, radius: 78)).max() ?? 0
+        #expect(later > early)
     }
 
-    @Test("Embers rise and stay well-formed")
-    func embersRise() {
-        for time in stride(from: 0.0, through: 12.0, by: 0.05) {
-            for ember in ParticleField.embers(at: time) {
-                #expect(ember.y <= 0)
-                #expect((0...1).contains(ember.opacity))
-                #expect(ember.size > 0)
-            }
+    @Test("Particles stay well-formed", arguments: [0.0, 0.3, 1.0, 2.5, 7.0, 15.0])
+    func wellFormed(time: Double) {
+        for particle in ParticleField.dust(at: time, radius: 78) + ParticleField.motes(at: time, spread: 120) {
+            #expect((0...1).contains(particle.opacity))
+            #expect(particle.size > 0)
         }
+    }
+
+    @Test("Motes wait for the landing")
+    func motesWait() {
+        #expect(ParticleField.motes(at: -0.1, spread: 120).isEmpty)
+        #expect(!ParticleField.motes(at: 5, spread: 120).isEmpty)
     }
 
     @Test("Particles are deterministic")
     func deterministic() {
-        #expect(ParticleField.sparks(at: 0.4) == ParticleField.sparks(at: 0.4))
-        #expect(ParticleField.embers(at: 5.2) == ParticleField.embers(at: 5.2))
+        #expect(ParticleField.dust(at: 0.4, radius: 78) == ParticleField.dust(at: 0.4, radius: 78))
+        #expect(ParticleField.motes(at: 5.2, spread: 120) == ParticleField.motes(at: 5.2, spread: 120))
     }
 
     @Test("Noise stays in the unit interval")

@@ -2,16 +2,9 @@ import SwiftUI
 
 /// A chunky flame with a small tongue on the left and the main tip leaning right, drawn in its rect.
 struct FlameShape: Shape {
-    /// -1...1. Leans the tips sideways; the bottom stays planted.
-    var sway: Double = 0
-
     func path(in rect: CGRect) -> Path {
-        let lean = sway * 0.035
         func point(_ x: Double, _ y: Double) -> CGPoint {
-            CGPoint(
-                x: Double(rect.minX) + (x + lean * (1 - y)) * Double(rect.width),
-                y: Double(rect.minY) + y * Double(rect.height)
-            )
+            CGPoint(x: Double(rect.minX) + x * Double(rect.width), y: Double(rect.minY) + y * Double(rect.height))
         }
 
         var path = Path()
@@ -45,7 +38,7 @@ struct DropShape: Shape {
     }
 }
 
-/// A star with concave sides: four points for a sparkle, eight for the burst cut-out.
+/// A star with concave sides, used for glints.
 struct SparkleShape: Shape {
     var points = 4
     /// Radius of the valleys between points, relative to the outer radius.
@@ -71,72 +64,34 @@ struct SparkleShape: Shape {
     }
 }
 
-/// Soft wedges radiating from the centre, used as a slow-turning backdrop behind the lit flame.
-struct SunburstShape: Shape {
-    var rays = 14
+/// A wavy-edged seal, like a minted medal, with a lobe at twelve o'clock.
+struct RosetteShape: Shape {
+    var lobes = 14
+    /// How deep the waves cut in, relative to the radius.
+    var depth = 0.055
 
     func path(in rect: CGRect) -> Path {
         let centerX = Double(rect.midX)
         let centerY = Double(rect.midY)
-        let radius = Double(max(rect.width, rect.height)) / 2
-        let step = 2 * Double.pi / Double(rays)
-        let halfWidth = step * 0.22
-        func point(_ angle: Double) -> CGPoint {
-            CGPoint(x: centerX + cos(angle) * radius, y: centerY + sin(angle) * radius)
-        }
+        let radius = Double(min(rect.width, rect.height)) / 2
+        let steps = lobes * 24
 
         var path = Path()
-        for i in 0..<rays {
-            let angle = Double(i) * step
-            path.move(to: CGPoint(x: centerX, y: centerY))
-            path.addLine(to: point(angle - halfWidth))
-            path.addLine(to: point(angle + halfWidth))
-            path.closeSubpath()
-        }
-        return path
-    }
-}
-
-/// The flame glyph with its inner drop, lit or dormant.
-struct FlameView: View {
-    enum Style {
-        case lit
-        case dormant
-    }
-
-    var style: Style
-    var sway: Double = 0
-    var size: CGSize
-    var palette: StreakPalette
-
-    var body: some View {
-        let flame = FlameShape(sway: sway)
-        let drop = DropShape()
-        ZStack {
-            // A round-joined stroke in the same fill softens the tips without redrawing the curve.
-            flame.fill(bodyFill)
-            flame.stroke(bodyFill, style: StrokeStyle(lineWidth: size.width * 0.07, lineJoin: .round))
-            ZStack {
-                drop.fill(coreFill)
-                drop.stroke(coreFill, style: StrokeStyle(lineWidth: size.width * 0.03, lineJoin: .round))
+        for step in 0...steps {
+            let turn = Double(step) / Double(steps) * 2 * .pi
+            let wave = cos(turn * Double(lobes) / 2)
+            let distance = radius * (1 - depth + depth * wave * wave)
+            let point = CGPoint(
+                x: centerX + cos(turn - .pi / 2) * distance,
+                y: centerY + sin(turn - .pi / 2) * distance
+            )
+            if step == 0 {
+                path.move(to: point)
+            } else {
+                path.addLine(to: point)
             }
-            .frame(width: size.width * 0.38, height: size.height * 0.44)
-            .position(x: size.width * (0.5 + sway * 0.012), y: size.height * 0.70)
         }
-        .frame(width: size.width, height: size.height)
-    }
-
-    private var bodyFill: LinearGradient {
-        switch style {
-        case .lit: LinearGradient(colors: palette.flame, startPoint: .top, endPoint: .bottom)
-        case .dormant: LinearGradient(colors: palette.dormant, startPoint: .top, endPoint: .bottom)
-        }
-    }
-
-    private var coreFill: LinearGradient {
-        switch style {
-        case .lit: LinearGradient(colors: palette.flameCore, startPoint: .top, endPoint: .bottom)
-        case .dormant: LinearGradient(colors: [palette.dormantCore, palette.dormantCore], startPoint: .top, endPoint: .bottom)
-        }
+        path.closeSubpath()
+        return path
     }
 }
