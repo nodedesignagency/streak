@@ -14,6 +14,25 @@ actions slide up.
 > same numbers the SwiftUI views read), drawn with approximate shapes and fonts. For the real thing, open
 > the package in Xcode and use the canvas preview.
 
+## Run it in the Simulator
+
+You need a Mac with Xcode 16 or newer. Clone once:
+
+```sh
+cd ~ && git clone https://github.com/nodedesignagency/streak.git
+```
+
+Then, whenever there are changes:
+
+```sh
+cd ~/streak && git fetch origin && git checkout claude/great-maxwell-9wf1fn && git pull && ./scripts/run.sh
+```
+
+`scripts/run.sh` builds `Demo/StreakDemo.xcodeproj`, boots an iPhone simulator, installs the app and launches
+it. The celebration plays on launch; change the streak and tap **Celebrate** to see it again. Pass a
+simulator name to pick one, for example `./scripts/run.sh "iPhone 16 Pro"`. You can also open
+`Demo/StreakDemo.xcodeproj` in Xcode and press ⌘R.
+
 ## Use it
 
 Add the package (File ▸ Add Package Dependencies… ▸ Add Local… or this repo's URL), then present the screen:
@@ -80,6 +99,8 @@ Sources/StreakCelebration/
   Model/                        Pure Foundation: week model, copy
   Views/                        Hero, shapes, week bar, button style, palette
 Tests/StreakCelebrationTests/   Swift Testing suites for Motion and Model
+Demo/                           Demo app (StreakDemo.xcodeproj, generated from project.yml by XcodeGen)
+scripts/run.sh                  Build the demo and launch it in the Simulator
 ```
 
 Run the tests with `swift test`. `Motion` and `Model` don't import SwiftUI, so the suite also runs on Linux.
