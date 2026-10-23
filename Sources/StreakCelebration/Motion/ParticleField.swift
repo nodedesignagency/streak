@@ -1,89 +1,83 @@
 import Foundation
 
-/// One particle, positioned relative to its emitter. Y grows downwards, matching SwiftUI.
+/// One flake of gold leaf. Y grows downwards, matching SwiftUI.
 struct Particle: Equatable, Sendable {
     var x: Double
     var y: Double
-    var size: Double
+    var width: Double
+    var height: Double
+    /// Radians.
+    var rotation: Double
     var opacity: Double
-    /// Index into the palette's particle colours.
+    /// Index into the palette's flake colours; 2 is the bright glint of a flake caught face-on.
     var tint: Int
-    /// Round specks, or little four-point glints.
-    var isRound: Bool
 }
 
-/// Stateless particle systems: every particle is a function of time and its index, so there is nothing
-/// to spawn, store or clean up, and a replay looks identical every time.
+/// Stateless particle systems: every flake is a function of time and its index, so there is nothing to
+/// spawn, store or clean up, and a replay looks identical every time.
 enum ParticleField {
-    static let dustCount = 30
-    static let dustMaxLifetime = 1.9
+    static let burstCount = 36
+    static let burstMaxLifetime = 2.0
 
-    static let moteCount = 10
-    static let motePeriod = 3.6
+    static let flakeCount = 90
 
-    /// Gold dust shaken off the medallion's rim as it lands.
+    /// Gold leaf thrown off the token as it lands, relative to the token's centre.
     /// - Parameters:
     ///   - age: Seconds since landing.
-    ///   - radius: Radius of the medallion, where the dust starts.
-    static func dust(at age: Double, radius: Double) -> [Particle] {
-        guard age >= 0, age < dustMaxLifetime else { return [] }
-        return (0..<dustCount).compactMap { i in
-            let lifetime = 1.1 + 0.8 * Noise.unit(i, 21)
+    ///   - halfWidth: Half the token's width; flakes start on its outline.
+    ///   - halfHeight: Half the token's height.
+    static func burst(at age: Double, halfWidth: Double, halfHeight: Double) -> [Particle] {
+        guard age >= 0, age < burstMaxLifetime else { return [] }
+        return (0..<burstCount).compactMap { i in
+            let lifetime = 1.2 + 0.8 * Noise.unit(i, 21)
             guard age < lifetime else { return nil }
             let p = age / lifetime
 
-            let angle = Double(i) / Double(dustCount) * 2 * .pi + (Noise.unit(i, 22) - 0.5) * 0.4
-            let distance = radius * (0.85 + 0.2 * Noise.unit(i, 23)) + (30 + 90 * Noise.unit(i, 24)) * Curve.easeOut.apply(p)
-            let fall = 40 * age * age
-            let twinkle = 0.65 + 0.35 * sin(age * (14 + 10 * Noise.unit(i, 25)) + Double(i))
-            let fade = p < 0.5 ? 1 : 1 - (p - 0.5) / 0.5
-            let isGlint = i % 5 == 0
+            let angle = Double(i) / Double(burstCount) * 2 * .pi + (Noise.unit(i, 22) - 0.5) * 0.5
+            let travel = (40 + 100 * Noise.unit(i, 23)) * Curve.easeOut.apply(p)
+            let fall = 60 * age * age
+            let spin = age * (6 + 8 * Noise.unit(i, 24)) + Noise.unit(i, 25) * 2 * .pi
+            let tumble = abs(cos(spin))
+            let size = 4 + 5 * Noise.unit(i, 26)
+            let fade = p < 0.6 ? 1 : 1 - (p - 0.6) / 0.4
 
             return Particle(
-                x: cos(angle) * distance,
-                y: sin(angle) * distance + fall,
-                size: (1.5 + 2.5 * Noise.unit(i, 26)) * (isGlint ? 2.4 : 1),
-                opacity: fade * twinkle,
-                tint: i % 3,
-                isRound: !isGlint
+                x: cos(angle) * (halfWidth + travel),
+                y: sin(angle) * (halfHeight + travel) + fall,
+                width: size * max(0.15, tumble),
+                height: size * 0.5,
+                rotation: angle + spin * 0.3,
+                opacity: fade * (0.6 + 0.4 * tumble),
+                tint: tumble > 0.9 ? 2 : i % 2
             )
         }
     }
 
-    /// Slow motes that keep drifting up around the medallion once it has landed.
+    /// Gold leaf drifting down across an area, endlessly. Nearer flakes are bigger, brighter and faster.
     /// - Parameters:
-    ///   - time: Seconds since landing.
-    ///   - spread: How far from the centre motes may appear.
-    static func motes(at time: Double, spread: Double) -> [Particle] {
-        guard time >= 0 else { return [] }
-        return (0..<moteCount).compactMap { i in
-            // Stagger the first appearance so they don't all start together.
-            let delay = Double(i) / Double(moteCount) * motePeriod + 0.3 * Noise.unit(i, 30)
-            let local = time - delay
-            guard local >= 0 else { return nil }
-
-            let cycle = Int(local / motePeriod)
-            let age = local.truncatingRemainder(dividingBy: motePeriod)
-            let seed = i &* 97 &+ cycle // a fresh path every time the mote respawns
-            let lifetime = motePeriod * (0.7 + 0.3 * Noise.unit(seed, 31))
-            guard age < lifetime else { return nil }
-            let p = age / lifetime
-
-            let startX = (Noise.unit(seed, 32) - 0.5) * 2 * spread
-            let startY = (Noise.unit(seed, 33) - 0.3) * spread
-            let rise = 30 + 40 * Noise.unit(seed, 34)
-            let sway = sin(age * 1.6 + Noise.unit(seed, 35) * 2 * .pi) * 6
-            let fadeIn = min(1, p / 0.2)
-            let fadeOut = p > 0.6 ? 1 - (p - 0.6) / 0.4 : 1
-            let twinkle = 0.6 + 0.4 * sin(age * 5 + Double(i))
+    ///   - time: Seconds since the flakes started.
+    ///   - width: Width of the area, in points.
+    ///   - height: Height of the area; flakes wrap from just below it to just above it.
+    static func flakes(at time: Double, width: Double, height: Double) -> [Particle] {
+        guard time >= 0, width > 0, height > 0 else { return [] }
+        let span = height + 40
+        return (0..<flakeCount).map { i in
+            let depth = Noise.unit(i, 40)
+            let speed = 30 + 60 * depth
+            let y = (Noise.unit(i, 41) * span + speed * time).truncatingRemainder(dividingBy: span) - 20
+            let drift = sin(time * (0.5 + Noise.unit(i, 42)) + Noise.unit(i, 43) * 2 * .pi) * (6 + 10 * depth)
+            let spin = time * (1.5 + 4 * Noise.unit(i, 44)) + Noise.unit(i, 45) * 2 * .pi
+            let tumble = abs(cos(spin))
+            let size = (2.5 + 5 * Noise.unit(i, 46)) * (0.55 + 0.45 * depth)
 
             return Particle(
-                x: startX + sway,
-                y: startY - rise * p,
-                size: 1.5 + 2 * Noise.unit(seed, 36),
-                opacity: fadeIn * fadeOut * twinkle,
-                tint: seed % 3,
-                isRound: i % 4 != 0
+                x: Noise.unit(i, 47) * width + drift,
+                y: y,
+                width: size * max(0.15, tumble),
+                height: size * 0.5,
+                rotation: Noise.unit(i, 48) * .pi + spin * 0.2,
+                opacity: (0.35 + 0.65 * depth) * (0.55 + 0.45 * tumble),
+                tint: tumble > 0.92 ? 2 : i % 2
             )
         }
     }

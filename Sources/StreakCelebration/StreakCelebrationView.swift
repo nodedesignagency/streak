@@ -2,8 +2,9 @@ import SwiftUI
 
 /// A full-screen celebration shown when the user extends their streak.
 ///
-/// A ring closes around a dull graphite medallion, which lifts, flips to polished gold and lands in a
-/// puff of gold dust while the count rolls over. Then the week's dots pop in and the actions arrive.
+/// A black metal token winds up and flicks into two full spins. The new count comes round on its front,
+/// its gold inlay lights up as it lands, and gold leaf starts to fall. Then the week's dots pop in and the
+/// actions arrive.
 ///
 ///     .fullScreenCover(isPresented: $showStreak) {
 ///         StreakCelebrationView(streak: 10) { showStreak = false }
@@ -15,6 +16,7 @@ public struct StreakCelebrationView: View {
     private let previousStreak: Int
     private let week: StreakWeek
     private let milestone: StreakMilestone
+    private let earnedOn: String
     private let message: String
     private let shareMessage: String
     private let onContinue: () -> Void
@@ -47,6 +49,7 @@ public struct StreakCelebrationView: View {
         self.previousStreak = previousStreak ?? streak - 1
         self.week = StreakWeek(streak: streak, today: today, calendar: calendar)
         self.milestone = StreakMilestone(streak: streak)
+        self.earnedOn = today.formatted(.dateTime.day().month(.abbreviated).year()).uppercased()
         self.message = message ?? StreakCopy.message(for: streak)
         self.shareMessage = StreakCopy.share(for: streak)
         self.onContinue = onContinue
@@ -60,8 +63,14 @@ public struct StreakCelebrationView: View {
 
             VStack(spacing: 0) {
                 VStack(spacing: 0) {
-                    MedallionHero(clock: clock, palette: palette)
-                        .padding(.bottom, -10)
+                    TokenHero(
+                        clock: clock,
+                        previousStreak: previousStreak,
+                        streak: streak,
+                        earnedOn: earnedOn,
+                        palette: palette
+                    )
+                    .padding(.bottom, -10)
                     counter
                     if stage >= .details {
                         Text("Day streak")
@@ -105,6 +114,7 @@ public struct StreakCelebrationView: View {
             ZStack {
                 palette.background
                 DotGrid(color: palette.dotGrid)
+                GoldLeafRain(clock: clock, palette: palette)
             }
             .ignoresSafeArea()
         }
@@ -113,8 +123,8 @@ public struct StreakCelebrationView: View {
         .onTapGesture(perform: skipToEnd)
         .sensoryFeedback(trigger: stage) { _, newStage in
             switch newStage {
-            case .charged: return .impact(weight: milestone.isReached ? .heavy : .light)
-            case .landed: return .success
+            case .spinning: return .impact(weight: .light)
+            case .landed: return milestone.isReached ? SensoryFeedback.impact(weight: .heavy) : SensoryFeedback.success
             default: return nil
             }
         }
@@ -157,7 +167,7 @@ public struct StreakCelebrationView: View {
     // MARK: Choreography
 
     enum Stage: Int, Comparable {
-        case dormant, charged, revealed, landed, details, week, actions
+        case dormant, spinning, revealed, landed, details, week, actions
 
         static func < (lhs: Stage, rhs: Stage) -> Bool {
             lhs.rawValue < rhs.rawValue
@@ -172,7 +182,7 @@ public struct StreakCelebrationView: View {
         start = .now
 
         let beats: [(TimeInterval, Stage)] = [
-            (CelebrationTimeline.arrive, .charged),
+            (CelebrationTimeline.spin, .spinning),
             (CelebrationTimeline.reveal, .revealed),
             (CelebrationTimeline.land, .landed),
             (CelebrationTimeline.details, .details),
@@ -203,7 +213,7 @@ public struct StreakCelebrationView: View {
             withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) { countScale = 1.1 }
             try? await Task.sleep(for: .milliseconds(160))
             withAnimation(.spring(response: 0.5, dampingFraction: 0.5)) { countScale = 1 }
-        case .charged, .landed:
+        case .spinning, .landed:
             stage = next
         default:
             withAnimation(.spring(response: 0.55, dampingFraction: 0.86)) { stage = next }

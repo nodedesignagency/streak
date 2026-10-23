@@ -56,70 +56,81 @@ struct TrackTests {
 }
 
 struct CelebrationTimelineTests {
-    @Test("Opens on the dormant medallion with an empty ring")
+    @Test("Opens facing front, unlit, showing the previous count")
     func opensDormant() {
         let frame = CelebrationTimeline.frame(at: 0)
-        #expect(!frame.showsGoldFace)
-        #expect(frame.flipAngle == 0)
-        #expect(frame.ringProgress == 0)
-        #expect(frame.cometOpacity == 0)
-        #expect(frame.haloOpacity == 0)
+        #expect(frame.tokenYaw == 0)
+        #expect(!frame.showsNewCount)
+        #expect(frame.inlayGlow < 0.5)
+        #expect(frame.flakesOpacity == 0)
     }
 
-    @Test("The ring closes as the flip begins")
-    func ringCloses() {
-        #expect(CelebrationTimeline.frame(at: CelebrationTimeline.arrive).ringProgress == 1)
-        #expect(CelebrationTimeline.frame(at: CelebrationTimeline.arrive).flipAngle == 0)
+    @Test("Winds up the other way before it spins")
+    func windsUp() {
+        #expect(CelebrationTimeline.frame(at: CelebrationTimeline.spin).tokenYaw < 0)
     }
 
-    @Test("The gold face takes over exactly at the reveal beat")
-    func revealsGold() {
-        #expect(!CelebrationTimeline.frame(at: CelebrationTimeline.reveal - 0.01).showsGoldFace)
-        #expect(CelebrationTimeline.frame(at: CelebrationTimeline.reveal + 0.01).showsGoldFace)
+    @Test("The count only changes while the front is turned away")
+    func swapsOutOfSight() {
+        var sawBackBeforeReveal = false
+        var previous = CelebrationTimeline.frame(at: 0)
+        for time in stride(from: 0.0, through: CelebrationTimeline.restingTime, by: 1.0 / 240) {
+            let frame = CelebrationTimeline.frame(at: time)
+            let projection = TokenProjection(yaw: frame.tokenYaw, thickness: HeroMetrics.tokenThickness)
+            if frame.showsNewCount != previous.showsNewCount {
+                // Edge-on at the swap (within one sample of it): neither face is readable.
+                #expect(projection.faceScale < 0.1)
+            }
+            if !projection.showsFront && time < CelebrationTimeline.reveal {
+                sawBackBeforeReveal = true
+            }
+            previous = frame
+        }
+        #expect(sawBackBeforeReveal)
     }
 
-    @Test("The medallion is back down when it lands")
+    @Test("At the reveal the front is back in view carrying the new count")
+    func reveal() {
+        let frame = CelebrationTimeline.frame(at: CelebrationTimeline.reveal)
+        #expect(frame.showsNewCount)
+        #expect(TokenProjection(yaw: frame.tokenYaw, thickness: HeroMetrics.tokenThickness).showsFront)
+    }
+
+    @Test("Lands back down with the gold lighting up")
     func lands() {
         let frame = CelebrationTimeline.frame(at: CelebrationTimeline.land)
-        #expect(abs(frame.medallionLift) < 4)
-        #expect(frame.haloOpacity > 0.5)
+        #expect(abs(frame.tokenLift) < 4)
+        #expect(frame.inlayGlow > 1)
     }
 
-    @Test("Settles on the gold face inside a closed ring")
+    @Test("Settles face-on after exactly two turns")
     func settles() {
         let frame = CelebrationTimeline.frame(at: CelebrationTimeline.restingTime, idleMotion: false)
-        #expect(frame.showsGoldFace)
-        #expect(abs(frame.flipAngle - 180) < 1)
-        #expect(abs(frame.medallionScale - 1) < 0.01)
-        #expect(abs(frame.medallionLift) < 0.1)
-        #expect(frame.ringProgress == 1)
-        #expect(frame.cometOpacity == 0)
-        #expect(frame.haloOpacity == 0)
-        #expect(abs(frame.shinePosition) >= 1.3)
+        #expect(abs(frame.tokenYaw - CelebrationTimeline.restingYaw) < 0.5)
+        #expect(abs(frame.tokenScale - 1) < 0.01)
+        #expect(abs(frame.tokenLift) < 0.1)
+        #expect(frame.inlayGlow == 1)
         #expect(frame.glow == 1)
+        #expect(frame.flakesOpacity == 1)
+        #expect(frame.showsNewCount)
     }
 
-    @Test("With idle motion the medallion glints again later")
-    func glintsAgain() {
-        let laterGlint = stride(from: CelebrationTimeline.restingTime, through: 12, by: 0.05).contains {
-            abs(CelebrationTimeline.frame(at: $0).shinePosition) < 0.2
-        }
-        #expect(laterGlint)
-    }
-
-    @Test("Idle floating stays subtle")
-    func floatIsSubtle() {
-        for time in stride(from: 3.0, through: 10.0, by: 0.01) {
-            #expect(abs(CelebrationTimeline.frame(at: time).medallionLift) <= 3.5)
+    @Test("Idle sway keeps the front in view and stays gentle")
+    func swayIsGentle() {
+        for time in stride(from: 3.0, through: 12.0, by: 0.01) {
+            let frame = CelebrationTimeline.frame(at: time)
+            #expect(abs(frame.tokenYaw - CelebrationTimeline.restingYaw) <= 15)
+            #expect(abs(frame.tokenLift) <= 3.5)
+            #expect(frame.showsNewCount)
         }
     }
 
     @Test("Beats run in order and finish before the resting time")
     func beatsInOrder() {
         let beats = [
-            CelebrationTimeline.anticipate, CelebrationTimeline.charge, CelebrationTimeline.arrive,
-            CelebrationTimeline.reveal, CelebrationTimeline.land, CelebrationTimeline.shine,
-            CelebrationTimeline.details, CelebrationTimeline.week, CelebrationTimeline.actions,
+            CelebrationTimeline.anticipate, CelebrationTimeline.spin, CelebrationTimeline.reveal,
+            CelebrationTimeline.land, CelebrationTimeline.details, CelebrationTimeline.week,
+            CelebrationTimeline.actions,
         ]
         #expect(beats == beats.sorted())
         #expect(CelebrationTimeline.actions < CelebrationTimeline.restingTime)
@@ -143,6 +154,42 @@ struct CelebrationTimelineTests {
     }
 }
 
+struct TokenProjectionTests {
+    let thickness = 16.0
+
+    @Test("Face-on shows the whole front with no edge")
+    func faceOn() {
+        let projection = TokenProjection(yaw: 0, thickness: thickness)
+        #expect(projection.showsFront)
+        #expect(projection.faceScale == 1)
+        #expect(projection.faceOffset == 0)
+        #expect(projection.extrude == 0)
+    }
+
+    @Test("Edge-on shows only the edge, as wide as the token is thick")
+    func edgeOn() {
+        let projection = TokenProjection(yaw: 90, thickness: thickness)
+        #expect(projection.faceScale < 1e-9)
+        #expect(abs(projection.extrude * 2 - thickness) < 1e-9)
+        #expect(abs(projection.edgeExposure - 1) < 1e-9)
+    }
+
+    @Test("Half a turn shows the back, and whole turns the front", arguments: [180.0, 540.0])
+    func back(yaw: Double) {
+        #expect(!TokenProjection(yaw: yaw, thickness: thickness).showsFront)
+        #expect(TokenProjection(yaw: yaw + 180, thickness: thickness).showsFront)
+    }
+
+    @Test("The visible face sits flush with one side of the edge", arguments: [20.0, 60.0, 130.0, 250.0, 700.0])
+    func faceIsFlush(yaw: Double) {
+        let projection = TokenProjection(yaw: yaw, thickness: thickness)
+        let halfWidth = HeroMetrics.tokenWidth / 2
+        let silhouette = halfWidth * projection.faceScale + projection.extrude
+        let faceEdge = abs(projection.faceOffset) + halfWidth * projection.faceScale
+        #expect(abs(silhouette - faceEdge) < 1e-9)
+    }
+}
+
 struct CelebrationClockTests {
     @Test("Waits at zero until started, and jumps to the end for Reduce Motion")
     func elapsed() {
@@ -154,42 +201,49 @@ struct CelebrationClockTests {
 }
 
 struct ParticleFieldTests {
-    @Test("Dust only exists after landing and then settles")
-    func dustLifetime() {
-        #expect(ParticleField.dust(at: -0.01, radius: 78).isEmpty)
-        #expect(ParticleField.dust(at: 0, radius: 78).count == ParticleField.dustCount)
-        #expect(ParticleField.dust(at: ParticleField.dustMaxLifetime, radius: 78).isEmpty)
+    @Test("The burst only exists after landing and then settles")
+    func burstLifetime() {
+        #expect(ParticleField.burst(at: -0.01, halfWidth: 66, halfHeight: 102).isEmpty)
+        #expect(ParticleField.burst(at: 0, halfWidth: 66, halfHeight: 102).count == ParticleField.burstCount)
+        #expect(ParticleField.burst(at: ParticleField.burstMaxLifetime, halfWidth: 66, halfHeight: 102).isEmpty)
     }
 
-    @Test("Dust starts at the rim and drifts outwards")
-    func dustSpreads() {
-        let distances = { (particles: [Particle]) in
+    @Test("The burst starts on the token's outline and flies outwards")
+    func burstSpreads() {
+        let distance = { (particles: [Particle]) in
             particles.map { ($0.x * $0.x + $0.y * $0.y).squareRoot() }
         }
-        #expect(distances(ParticleField.dust(at: 0, radius: 78)).allSatisfy { $0 > 60 })
-        let early = distances(ParticleField.dust(at: 0.05, radius: 78)).max() ?? 0
-        let later = distances(ParticleField.dust(at: 0.6, radius: 78)).max() ?? 0
+        #expect(distance(ParticleField.burst(at: 0, halfWidth: 66, halfHeight: 102)).allSatisfy { $0 >= 65 })
+        let early = distance(ParticleField.burst(at: 0.05, halfWidth: 66, halfHeight: 102)).max() ?? 0
+        let later = distance(ParticleField.burst(at: 0.6, halfWidth: 66, halfHeight: 102)).max() ?? 0
         #expect(later > early)
     }
 
-    @Test("Particles stay well-formed", arguments: [0.0, 0.3, 1.0, 2.5, 7.0, 15.0])
-    func wellFormed(time: Double) {
-        for particle in ParticleField.dust(at: time, radius: 78) + ParticleField.motes(at: time, spread: 120) {
-            #expect((0...1).contains(particle.opacity))
-            #expect(particle.size > 0)
+    @Test("Falling flakes stay in their lane and keep falling", arguments: [0.0, 1.3, 7.9, 60.0])
+    func flakesFall(time: Double) {
+        let flakes = ParticleField.flakes(at: time, width: 390, height: 844)
+        #expect(flakes.count == ParticleField.flakeCount)
+        for flake in flakes {
+            #expect(flake.y >= -20 && flake.y < 844 + 20)
+            #expect(flake.x > -30 && flake.x < 390 + 30)
         }
     }
 
-    @Test("Motes wait for the landing")
-    func motesWait() {
-        #expect(ParticleField.motes(at: -0.1, spread: 120).isEmpty)
-        #expect(!ParticleField.motes(at: 5, spread: 120).isEmpty)
+    @Test("Flakes stay well-formed", arguments: [0.0, 0.3, 1.0, 2.5, 7.0, 15.0])
+    func wellFormed(time: Double) {
+        let all = ParticleField.burst(at: time, halfWidth: 66, halfHeight: 102)
+            + ParticleField.flakes(at: time, width: 390, height: 844)
+        for flake in all {
+            #expect((0...1).contains(flake.opacity))
+            #expect(flake.width > 0 && flake.height > 0)
+            #expect((0...2).contains(flake.tint))
+        }
     }
 
-    @Test("Particles are deterministic")
+    @Test("Flakes are deterministic")
     func deterministic() {
-        #expect(ParticleField.dust(at: 0.4, radius: 78) == ParticleField.dust(at: 0.4, radius: 78))
-        #expect(ParticleField.motes(at: 5.2, spread: 120) == ParticleField.motes(at: 5.2, spread: 120))
+        #expect(ParticleField.burst(at: 0.4, halfWidth: 66, halfHeight: 102) == ParticleField.burst(at: 0.4, halfWidth: 66, halfHeight: 102))
+        #expect(ParticleField.flakes(at: 5.2, width: 390, height: 844) == ParticleField.flakes(at: 5.2, width: 390, height: 844))
     }
 
     @Test("Noise stays in the unit interval")

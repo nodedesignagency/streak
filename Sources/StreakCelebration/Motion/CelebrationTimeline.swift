@@ -2,127 +2,89 @@ import Foundation
 
 /// Everything the hero needs to draw one frame of the celebration.
 struct CelebrationFrame: Equatable, Sendable {
-    // The medallion.
-    var medallionScale: Double
+    /// Degrees around the vertical axis. 0 faces the viewer; the spin ends two full turns later.
+    var tokenYaw: Double
     /// Points above the resting position.
-    var medallionLift: Double
-    /// Degrees around the vertical axis. Past 90 the gold face is showing.
-    var flipAngle: Double
-    /// Horizontal position of the shine band across the gold face: ±1.3 is fully off the medallion.
-    var shinePosition: Double
-
-    // The ring that closes around it.
-    /// 0...1 of the circle drawn.
-    var ringProgress: Double
-    /// Glowing head riding the end of the ring while it closes.
-    var cometOpacity: Double
-    var ringGlow: Double
-    /// A thin ring that pulses outwards when the medallion lands.
-    var haloScale: Double
-    var haloOpacity: Double
-
+    var tokenLift: Double
+    var tokenScale: Double
+    /// Brightness of the gold inlay: dull before the spin, flashing past 1 as the token lands, then 1.
+    var inlayGlow: Double
     /// Warm light behind the hero.
     var glow: Double
+    /// Gold leaf falling across the screen.
+    var flakesOpacity: Double
 
-    var showsGoldFace: Bool { flipAngle > 90 }
+    /// The token has turned its back since the spin began, so its front may now carry the new count.
+    var showsNewCount: Bool { tokenYaw >= CelebrationTimeline.swapAngle }
 }
 
 /// The whole celebration as pure functions of elapsed time, so it can be scrubbed, replayed, skipped and tested.
 enum CelebrationTimeline {
     // MARK: Beats (seconds since the screen started playing)
 
-    /// The medallion dips, winding up.
+    /// The token winds up, turning back a little.
     static let anticipate = 0.20
-    /// The ring starts closing and the medallion rises with it.
-    static let charge = 0.35
-    static let chargeDuration = 0.75
-    /// The ring closes and the medallion starts to flip.
-    static let arrive = 1.10
-    /// Edge-on: the gold face takes over and the count rolls.
-    static let reveal = 1.28
-    /// The medallion settles back down and shakes off gold dust.
-    static let land = 1.42
-    static let shine = 1.75
-    static let details = 2.05
-    static let week = 2.40
+    /// It flicks into two full turns, rising as it goes.
+    static let spin = 0.40
+    /// The front comes round carrying the new count, and the counter rolls.
+    static let reveal = 1.00
+    /// It settles facing the viewer: the gold lights up and gold leaf flies.
+    static let land = 1.55
+    static let details = 2.10
+    static let week = 2.45
     static let actions = 3.40
 
     /// A moment after everything has settled; used for Reduce Motion and for skipping ahead.
-    static let restingTime = 4.2
+    static let restingTime = 4.3
 
-    static let shineSweep = 0.9
-    static let shineInterval = 5.0
+    /// Yaw at which the count on the front changes. The token is edge-on here and its back comes next.
+    static let swapAngle = 450.0
+    static let restingYaw = 720.0
     static let dotStagger = 0.07
 
     // MARK: Tracks
 
-    private static let medallionScale = Track(1)
-        .to(0.94, at: anticipate, over: 0.15, .easeOut)
-        .to(1.02, at: charge, over: chargeDuration, .easeInOut)
-        .to(1.12, at: arrive, over: reveal - arrive, .easeOut)
-        .to(1, at: reveal, over: 0.6, .spring(damping: 0.45))
-    private static let medallionLift = Track(0)
-        .to(-4, at: anticipate, over: 0.15, .easeOut)
-        .to(16, at: charge, over: chargeDuration, .easeInOut)
-        .to(0, at: reveal, over: 0.5, .spring(damping: 0.55))
-    // Accelerate into the edge-on moment, then spring through to the back. The change of pace happens
-    // while the medallion is edge-on, where nobody can see it.
-    private static let flipAngle = Track(0)
-        .to(90, at: arrive, over: reveal - arrive, .easeIn)
-        .to(180, at: reveal, over: 0.6, .spring(damping: 0.5))
-
-    private static let ringProgress = Track(0)
-        .to(1, at: charge, over: chargeDuration, .easeInOut)
-    private static let comet = Track(0)
-        .to(1, at: charge, over: 0.1, .linear)
-        .to(0, at: arrive + 0.05, over: 0.35, .easeOut)
-    private static let ringGlow = Track(0)
-        .to(1, at: arrive - 0.05, over: 0.12, .easeOut)
-        .to(0.35, at: arrive + 0.1, over: 0.9, .easeOut)
-    private static let haloScale = Track(1)
-        .to(1.4, at: land, over: 0.8, .easeOut)
-    private static let haloOpacity = Track(0)
-        .set(0.6, at: land)
-        .to(0, at: land + 0.05, over: 0.75, .easeOut)
-
+    private static let yaw = Track(0)
+        .to(-18, at: anticipate, over: spin - anticipate, .easeOut)
+        .to(restingYaw + 8, at: spin, over: land - spin, .easeOut)
+        .to(restingYaw, at: land, over: 0.5, .spring(damping: 0.5))
+    private static let lift = Track(0)
+        .to(-4, at: anticipate, over: spin - anticipate, .easeOut)
+        .to(14, at: spin, over: 0.6, .easeOut)
+        .to(0, at: 1.40, over: 0.6, .spring(damping: 0.55))
+    private static let scale = Track(1)
+        .to(0.96, at: anticipate, over: spin - anticipate, .easeOut)
+        .to(1.06, at: spin, over: 0.6, .easeOut)
+        .to(1, at: 1.40, over: 0.6, .spring(damping: 0.5))
+    private static let inlayGlow = Track(0.35)
+        .to(1.35, at: land - 0.05, over: 0.15, .easeOut)
+        .to(1, at: land + 0.1, over: 0.6, .easeOut)
     private static let glow = Track(0.2)
-        .to(1, at: land - 0.15, over: 0.6, .easeOut)
+        .to(1, at: land - 0.1, over: 0.6, .easeOut)
+    private static let flakes = Track(0)
+        .to(1, at: land - 0.05, over: 0.3, .easeOut)
     private static let idle = Track(0)
-        .to(1, at: land + 0.4, over: 0.8, .easeInOut)
+        .to(1, at: land + 0.5, over: 1.0, .easeInOut)
 
     // MARK: Evaluation
 
     /// - Parameters:
     ///   - time: Seconds since the screen started playing.
-    ///   - idleMotion: Whether the settled medallion keeps floating and glinting. Off for Reduce Motion.
+    ///   - idleMotion: Whether the settled token keeps swaying and floating. Off for Reduce Motion.
     static func frame(at time: Double, idleMotion: Bool = true) -> CelebrationFrame {
         let idleAmount = idleMotion ? idle.value(at: time) : 0
+        // A slow sway so the light keeps catching the gold.
+        let sway = sin((time - land) * 2 * .pi * 0.16) * 14 * idleAmount
         let bob = sin(time * 2 * .pi * 0.35) * 3 * idleAmount
-        let breathe = (sin(time * 2 * .pi * 0.5) * 0.5 + 0.5) * 0.25 * idleAmount
 
         return CelebrationFrame(
-            medallionScale: medallionScale.value(at: time),
-            medallionLift: medallionLift.value(at: time) + bob,
-            flipAngle: flipAngle.value(at: time),
-            shinePosition: shinePosition(at: time, idleMotion: idleMotion),
-            ringProgress: ringProgress.value(at: time),
-            cometOpacity: comet.value(at: time),
-            ringGlow: ringGlow.value(at: time) + breathe,
-            haloScale: haloScale.value(at: time),
-            haloOpacity: haloOpacity.value(at: time),
-            glow: glow.value(at: time)
+            tokenYaw: yaw.value(at: time) + sway,
+            tokenLift: lift.value(at: time) + bob,
+            tokenScale: scale.value(at: time),
+            inlayGlow: inlayGlow.value(at: time),
+            glow: glow.value(at: time),
+            flakesOpacity: flakes.value(at: time)
         )
-    }
-
-    /// One sweep after landing, then (with idle motion) another glint every few seconds.
-    private static func shinePosition(at time: Double, idleMotion: Bool) -> Double {
-        let firstSweepEnd = shine + shineSweep
-        let pause = 1.5
-        guard idleMotion, time > firstSweepEnd + pause else {
-            return -1.3 + 2.6 * Curve.easeInOut.apply((time - shine) / shineSweep)
-        }
-        let cycle = (time - firstSweepEnd - pause).truncatingRemainder(dividingBy: shineInterval)
-        return -1.3 + 2.6 * Curve.easeInOut.apply(cycle / shineSweep)
     }
 
     /// How far a week dot has popped in: 0 before it starts, springing past 1 and settling on 1.

@@ -1,13 +1,13 @@
 # StreakCelebration
 
-A SwiftUI screen for the moment a user extends their streak. On a dark stage, a ring closes around a
-dull graphite medallion. The medallion lifts, flips to polished gold and lands in a puff of gold dust
-while the count rolls over. Then the week's dots pop in and the actions arrive.
+A SwiftUI screen for the moment a user extends their streak. On a dark stage, a black metal token
+winds up and flicks into two full spins. The new count comes round on its front, its gold inlay lights
+up as it lands, and gold leaf starts to fall. Then the week's dots pop in and the actions arrive.
 
 <p align="center">
   <img src="docs/preview.gif" width="260" alt="Animated preview of the streak celebration">
   &nbsp;&nbsp;
-  <img src="docs/final-frame.png" width="260" alt="Settled state: gold medallion in a closed ring, 10 day streak, week dots and Continue button">
+  <img src="docs/final-frame.png" width="260" alt="Settled state: black token with a gold 10, 10 day streak, week dots and Continue button">
 </p>
 
 > The previews above were rendered from this package's `CelebrationTimeline` and `ParticleField` values (the
@@ -68,21 +68,23 @@ All timing lives in `Motion/CelebrationTimeline.swift`. Every layer is a pure fu
 
 | Time | Beat |
 | --- | --- |
-| 0.00s | Graphite medallion, empty ring, the previous count in grey. |
-| 0.20s | Anticipation: the medallion dips and tightens. |
-| 0.35s | The ring starts closing behind a glowing head, and the medallion rises with it. |
-| 1.10s | **Ring closed** (light haptic, heavy on a milestone day); the medallion starts to flip. |
-| 1.28s | Edge-on: the gold face takes over and the serif count rolls up and pops. |
-| 1.42s | **Lands** (success haptic): gold dust shakes off the rim and a thin halo pulses out. |
-| 1.75s | A glint sweeps across the gold. From here it floats gently and glints every few seconds, with motes drifting up. |
-| 2.05s | "Day streak" fades in. |
-| 2.40s | The week slides in and the layout lifts; the dots pop in left to right, ending on today's flame with a pulse. |
+| 0.00s | The token faces you showing yesterday's count, its gold inlay dull. |
+| 0.20s | Anticipation: it turns back a little and dips. |
+| 0.40s | **Spin** (light haptic): it flicks into two full turns, rising, so you see its edge and its engraved back go by. |
+| 1.00s | The front comes round carrying the new count (it changed while the back was turned), and the serif count below rolls up and pops. |
+| 1.55s | **Lands** (success haptic, heavy on a milestone day): it settles face-on, the gold flares and settles lit, gold leaf flies off its edges and starts falling across the screen. |
+| 2.10s | "Day streak" fades in. From here the token sways gently so the light keeps catching the gold. |
+| 2.45s | The week slides in and the layout lifts; the dots pop in left to right, ending on today's flame with a pulse. |
 | 3.40s | Share and Continue arrive. |
+
+The token is drawn as a projected solid rather than with stacked 3D layers: the visible face is
+squashed by the cosine of its angle and shifted by its thickness, and the edge is the outline stretched
+sideways (`Motion/TokenProjection.swift`). That keeps the depth order right at every angle.
 
 Other details:
 
 - **Tap anywhere** to skip to the settled state.
-- **Reduce Motion** shows the settled state straight away, without floating, glints or motes.
+- **Reduce Motion** shows the settled state straight away, without the sway or the falling gold leaf.
 - **VoiceOver** reads "10 day streak" and "6 of 7 days this week", and the hidden buttons stay out of
   the accessibility tree until they appear.
 - The screen always plays on its own dark stage and sets `.preferredColorScheme(.dark)` so the status bar
@@ -97,7 +99,7 @@ Sources/StreakCelebration/
   StreakCelebrationView.swift   Screen, stage choreography, haptics, previews
   Motion/                       Pure Foundation: timeline, easing, particles, geometry
   Model/                        Pure Foundation: week, milestones, copy
-  Views/                        Medallion, ring, week dots, shapes, button style, palette
+  Views/                        Token, gold leaf, week dots, shapes, button style, palette
 Tests/StreakCelebrationTests/   Swift Testing suites for Motion and Model
 Demo/                           Demo app (StreakDemo.xcodeproj, generated from project.yml by XcodeGen)
 scripts/run.sh                  Build the demo and launch it in the Simulator
@@ -107,12 +109,13 @@ Run the tests with `swift test`. `Motion` and `Model` don't import SwiftUI, so t
 
 ## References
 
-The screen keeps the structure of the first version (hero, count, label, week, message, actions), which
-followed the reference video. The look and motion come from these Mobbin screens:
+The screen keeps the structure of the first version (hero, count, label, week, message, actions). The
+token follows the second reference recording: a satin black capsule with "DAY" stamped above an inlaid
+gold numeral and an engraved back, spinning to show its edge while gold leaf falls. The rest of the look
+comes from these Mobbin screens:
 
-- [Atoms](https://mobbin.com/screens/904f683f-daef-4507-ac61-d77f1dfd7ae8): a gold medallion inside a ring on a dark, dotted stage, with serif type.
+- [Atoms](https://mobbin.com/screens/904f683f-daef-4507-ac61-d77f1dfd7ae8): a dark, dotted stage with serif type.
 - [WHOOP](https://mobbin.com/screens/7cc5b73d-2c66-4ecf-b665-b7ee6dc8e480) and [Alta](https://mobbin.com/screens/85635c51-5d04-45a1-9034-4b590953fb70): a dark stage, a week of dots with today called out, and a white pill CTA.
 - [Noom](https://mobbin.com/screens/efac88e3-4de7-4d27-855c-9b73392f0f3a) and [How We Feel](https://mobbin.com/screens/824dac5c-f611-4999-888c-8c3163475a2f): big serif numerals over a quiet label.
 - [Insight Timer](https://mobbin.com/screens/3a74a615-658c-463c-b117-afac5989f66e): "next milestone in N days" as the encouragement.
-- [Calm](https://mobbin.com/screens/f2dbc8b8-cd62-4853-b6bc-b2c34e1ae7ae) and [Cash App](https://mobbin.com/screens/aefd8bc7-d9e1-480e-ac83-10a05700674b): a ring that closes as the "done" moment.
 - [Crypto.com](https://mobbin.com/screens/600296a0-5fe0-4f4b-b5a9-16433b60db35) and [Rocket Money](https://mobbin.com/screens/44669c9f-a311-454a-9f65-595b0f53a001): earned badges presented as minted objects.
