@@ -7,7 +7,7 @@ up as it lands, and gold leaf starts to fall. Then the week's dots pop in and th
 <p align="center">
   <img src="docs/preview.gif" width="260" alt="Animated preview of the streak celebration">
   &nbsp;&nbsp;
-  <img src="docs/final-frame.png" width="260" alt="Settled state: black token with a gold 10, 10 day streak, week dots and Continue button">
+  <img src="docs/final-frame.png" width="260" alt="Settled state: black token reading 10 day streak, week dots and Continue button">
 </p>
 
 > The previews above were rendered from this package's `CelebrationTimeline` and `ParticleField` values (the
@@ -71,9 +71,8 @@ All timing lives in `Motion/CelebrationTimeline.swift`. Every layer is a pure fu
 | 0.00s | The token faces you showing yesterday's count, its gold inlay dull. |
 | 0.20s | Anticipation: it turns back a little and dips. |
 | 0.40s | **Spin** (light haptic): it flicks into two full turns, rising, so you see its edge and its engraved back go by. |
-| 1.00s | The front comes round carrying the new count (it changed while the back was turned), and the serif count below rolls up and pops. |
-| 1.55s | **Lands** (success haptic, heavy on a milestone day): it settles face-on, the gold flares and settles lit, gold leaf flies off its edges and starts falling across the screen. |
-| 2.10s | "Day streak" fades in. From here the token sways gently so the light keeps catching the gold. |
+| 1.00s | The front comes round carrying the new count, which changed while the back was turned. |
+| 1.55s | **Lands** (success haptic, heavy on a milestone day): it settles face-on, the gold flares and settles lit, gold leaf flies off its edges and starts falling across the screen. From here the token sways gently so the light keeps catching the gold. |
 | 2.45s | The week slides in and the layout lifts; the dots pop in left to right, ending on today's flame with a pulse. |
 | 3.40s | Share and Continue arrive. |
 
@@ -109,13 +108,12 @@ Run the tests with `swift test`. `Motion` and `Model` don't import SwiftUI, so t
 
 ## References
 
-The screen keeps the structure of the first version (hero, count, label, week, message, actions). The
-token follows the second reference recording: a satin black capsule with "DAY" stamped above an inlaid
-gold numeral and an engraved back, spinning to show its edge while gold leaf falls. The rest of the look
+The token follows the second reference recording: a satin black capsule with an inlaid gold numeral
+(here with "Day streak" stamped beneath it) and an engraved back, spinning to show its edge while gold
+leaf falls. The rest of the look
 comes from these Mobbin screens:
 
-- [Atoms](https://mobbin.com/screens/904f683f-daef-4507-ac61-d77f1dfd7ae8): a dark, dotted stage with serif type.
+- [Atoms](https://mobbin.com/screens/904f683f-daef-4507-ac61-d77f1dfd7ae8): a dark, dotted stage.
 - [WHOOP](https://mobbin.com/screens/7cc5b73d-2c66-4ecf-b665-b7ee6dc8e480) and [Alta](https://mobbin.com/screens/85635c51-5d04-45a1-9034-4b590953fb70): a dark stage, a week of dots with today called out, and a white pill CTA.
-- [Noom](https://mobbin.com/screens/efac88e3-4de7-4d27-855c-9b73392f0f3a) and [How We Feel](https://mobbin.com/screens/824dac5c-f611-4999-888c-8c3163475a2f): big serif numerals over a quiet label.
 - [Insight Timer](https://mobbin.com/screens/3a74a615-658c-463c-b117-afac5989f66e): "next milestone in N days" as the encouragement.
 - [Crypto.com](https://mobbin.com/screens/600296a0-5fe0-4f4b-b5a9-16433b60db35) and [Rocket Money](https://mobbin.com/screens/44669c9f-a311-454a-9f65-595b0f53a001): earned badges presented as minted objects.

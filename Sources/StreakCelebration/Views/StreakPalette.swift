@@ -11,8 +11,6 @@ struct StreakPalette {
 
     /// Light to deep gold, for the week dots.
     var gold: [Color]
-    var number: [Color]
-    var dormantNumber: [Color]
     var glow: Color
 
     /// The token's satin black face, top-left to bottom-right.
@@ -21,6 +19,8 @@ struct StreakPalette {
     var edge: [Color]
     /// Lettering stamped into the black metal.
     var engraving: Color
+    /// The "Day streak" label on the token's front: stamped too, but light enough to read at a glance.
+    var stampedLabel: Color
     /// The inlaid numeral, top to bottom, unlit and lit.
     var inlayDull: [RGB]
     var inlayLit: [RGB]
@@ -35,12 +35,11 @@ struct StreakPalette {
         tertiaryInk: Color(hex: 0xF7F3EC).opacity(0.3),
         track: Color(hex: 0xF7F3EC).opacity(0.09),
         gold: [Color(hex: 0xFBE3A1), Color(hex: 0xF0B952), Color(hex: 0xC27F22)],
-        number: [Color(hex: 0xFDE7AE), Color(hex: 0xE9A944)],
-        dormantNumber: [Color(hex: 0x4A4743), Color(hex: 0x3A3734)],
         glow: Color(hex: 0xFFB547),
         metal: [Color(hex: 0x2C2B2E), Color(hex: 0x161618), Color(hex: 0x1F1E21)],
         edge: [Color(hex: 0x3A393D), Color(hex: 0x141416), Color(hex: 0x29282B)],
         engraving: Color(hex: 0x403F43),
+        stampedLabel: Color(hex: 0x8A878F),
         inlayDull: [RGB(hex: 0x8C6A3A), RGB(hex: 0x6E4E24), RGB(hex: 0x4E3416)],
         inlayLit: [RGB(hex: 0xFFEAA8), RGB(hex: 0xF2B544), RGB(hex: 0xB06E1E)],
         flakes: [Color(hex: 0xD9A441), Color(hex: 0xB8822E), Color(hex: 0xFFE7A3)]

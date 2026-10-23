@@ -94,13 +94,8 @@ struct Token: View {
         // The gold catches the light hardest a little left of face-on.
         let specular = pow(max(0, cos((frame.tokenYaw - 20) * .pi / 180)), 12)
         let brightness = frame.inlayGlow * (0.85 + 0.3 * specular)
-        return VStack(spacing: 0) {
-            Text("DAY")
-                .font(.system(size: 15, weight: .heavy))
-                .tracking(2.5)
-                .foregroundStyle(palette.engraving)
-                .modifier(Stamped())
-
+        // Placed by fraction of the token rather than stacked, so the font's line padding can't shift them.
+        return ZStack {
             Text("\(count)")
                 .font(.system(size: 118, weight: .black).width(.condensed))
                 .foregroundStyle(LinearGradient(
@@ -114,8 +109,20 @@ struct Token: View {
                 // Recessed into the metal, with a warm bloom once it's lit.
                 .shadow(color: .black.opacity(0.75), radius: 0, x: 0, y: -1.5)
                 .shadow(color: palette.inlayLit[1].color.opacity(0.35 * min(frame.inlayGlow, 1)), radius: 8)
+                .position(x: width / 2, y: height * 0.45)
+
+            Text("Day streak")
+                .font(.system(size: 11, weight: .heavy))
+                .tracking(2.2)
+                .textCase(.uppercase)
+                .foregroundStyle(palette.stampedLabel)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .frame(width: width * 0.8)
+                .modifier(Stamped())
+                .position(x: width / 2, y: height * 0.77)
         }
-        .offset(y: 6)
+        .frame(width: width, height: height)
     }
 
     private var back: some View {

@@ -129,7 +129,7 @@ struct CelebrationTimelineTests {
     func beatsInOrder() {
         let beats = [
             CelebrationTimeline.anticipate, CelebrationTimeline.spin, CelebrationTimeline.reveal,
-            CelebrationTimeline.land, CelebrationTimeline.details, CelebrationTimeline.week,
+            CelebrationTimeline.land, CelebrationTimeline.week,
             CelebrationTimeline.actions,
         ]
         #expect(beats == beats.sorted())

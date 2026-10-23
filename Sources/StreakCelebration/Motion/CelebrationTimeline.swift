@@ -26,11 +26,10 @@ enum CelebrationTimeline {
     static let anticipate = 0.20
     /// It flicks into two full turns, rising as it goes.
     static let spin = 0.40
-    /// The front comes round carrying the new count, and the counter rolls.
+    /// The front comes round carrying the new count.
     static let reveal = 1.00
     /// It settles facing the viewer: the gold lights up and gold leaf flies.
     static let land = 1.55
-    static let details = 2.10
     static let week = 2.45
     static let actions = 3.40
 

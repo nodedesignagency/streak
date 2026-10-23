@@ -28,7 +28,8 @@ struct TokenHero: View {
         }
         .frame(width: HeroMetrics.canvasSize, height: HeroMetrics.canvasSize)
         .allowsHitTesting(false)
-        .accessibilityHidden(true)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("\(streak) day streak"))
     }
 
     // MARK: Layers

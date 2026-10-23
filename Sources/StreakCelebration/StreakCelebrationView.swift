@@ -25,13 +25,12 @@ public struct StreakCelebrationView: View {
 
     @State private var start: Date?
     @State private var stage = Stage.dormant
-    @State private var countScale = 1.0
 
     private let palette = StreakPalette.night
 
     /// - Parameters:
     ///   - streak: The streak after today's activity.
-    ///   - previousStreak: What the counter rolls over from. Defaults to `streak - 1`.
+    ///   - previousStreak: What the token shows before it spins. Defaults to `streak - 1`.
     ///   - today: The day being celebrated.
     ///   - calendar: Decides the first day of the week and the weekday names.
     ///   - message: The line under the week. Defaults to how far the next milestone is.
@@ -62,27 +61,13 @@ public struct StreakCelebrationView: View {
             Spacer(minLength: 12)
 
             VStack(spacing: 0) {
-                VStack(spacing: 0) {
-                    TokenHero(
-                        clock: clock,
-                        previousStreak: previousStreak,
-                        streak: streak,
-                        earnedOn: earnedOn,
-                        palette: palette
-                    )
-                    .padding(.bottom, -10)
-                    counter
-                    if stage >= .details {
-                        Text("Day streak")
-                            .font(.system(.footnote, weight: .semibold))
-                            .tracking(3)
-                            .textCase(.uppercase)
-                            .foregroundStyle(palette.secondaryInk)
-                            .transition(.opacity.combined(with: .offset(y: 8)))
-                    }
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text("\(streak) day streak"))
+                TokenHero(
+                    clock: clock,
+                    previousStreak: previousStreak,
+                    streak: streak,
+                    earnedOn: earnedOn,
+                    palette: palette
+                )
 
                 if stage >= .week {
                     VStack(spacing: 22) {
@@ -93,7 +78,7 @@ public struct StreakCelebrationView: View {
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(.top, 30)
+                    .padding(.top, 8)
                     .transition(.opacity.combined(with: .offset(y: 24)))
                 }
             }
@@ -133,22 +118,6 @@ public struct StreakCelebrationView: View {
 
     // MARK: Pieces
 
-    private var counter: some View {
-        let isRevealed = stage >= .revealed
-        return Text("\(isRevealed ? streak : previousStreak)")
-            .font(.system(size: 88, weight: .regular, design: .serif))
-            .monospacedDigit()
-            .foregroundStyle(LinearGradient(
-                colors: isRevealed ? palette.number : palette.dormantNumber,
-                startPoint: .top,
-                endPoint: .bottom
-            ))
-            .contentTransition(.numericText())
-            .scaleEffect(countScale)
-            .lineLimit(1)
-            .minimumScaleFactor(0.5)
-    }
-
     private var actions: some View {
         HStack(spacing: 12) {
             ShareLink(item: shareMessage) {
@@ -167,7 +136,7 @@ public struct StreakCelebrationView: View {
     // MARK: Choreography
 
     enum Stage: Int, Comparable {
-        case dormant, spinning, revealed, landed, details, week, actions
+        case dormant, spinning, landed, week, actions
 
         static func < (lhs: Stage, rhs: Stage) -> Bool {
             lhs.rawValue < rhs.rawValue
@@ -183,15 +152,13 @@ public struct StreakCelebrationView: View {
 
         let beats: [(TimeInterval, Stage)] = [
             (CelebrationTimeline.spin, .spinning),
-            (CelebrationTimeline.reveal, .revealed),
             (CelebrationTimeline.land, .landed),
-            (CelebrationTimeline.details, .details),
             (CelebrationTimeline.week, .week),
             (CelebrationTimeline.actions, .actions),
         ]
         for (time, next) in beats {
             guard await wait(until: time) else { return }
-            await advance(to: next)
+            advance(to: next)
         }
     }
 
@@ -205,14 +172,9 @@ public struct StreakCelebrationView: View {
         return !Task.isCancelled
     }
 
-    private func advance(to next: Stage) async {
+    private func advance(to next: Stage) {
         guard next > stage else { return }
         switch next {
-        case .revealed:
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { stage = next }
-            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) { countScale = 1.1 }
-            try? await Task.sleep(for: .milliseconds(160))
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.5)) { countScale = 1 }
         case .spinning, .landed:
             stage = next
         default:
@@ -226,7 +188,6 @@ public struct StreakCelebrationView: View {
         start = Date.now.addingTimeInterval(-CelebrationTimeline.restingTime)
         withAnimation(.spring(response: 0.45, dampingFraction: 0.86)) {
             stage = .actions
-            countScale = 1
         }
     }
 }
