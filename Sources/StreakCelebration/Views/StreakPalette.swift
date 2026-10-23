@@ -16,14 +16,16 @@ struct StreakPalette {
     var flakes: [Color]
 
     // The coin. Face lists run top-left to bottom-right, edge lists left to right.
-    var faceLit: [RGB]
     var faceDull: [RGB]
-    /// The olive cast brushed gold takes on when it turns away from the light.
-    var faceAway: [RGB]
-    var edgeLit: [RGB]
+    var facePolished: [RGB]
+    /// The pale cast satin gold takes on when it turns towards the light.
+    var faceChampagne: [RGB]
+    /// The warm cast it takes on when it turns the other way.
+    var facePeach: [RGB]
     var edgeDull: [RGB]
-    var edgeAway: [RGB]
-    /// Catch-light and shadow that make the raised rim, lettering and flame stand off the face.
+    var edgePolished: [RGB]
+    var edgeChampagne: [RGB]
+    /// Catch-light and shadow that make the rings, lettering and flame stand off the face.
     var reliefLight: Color
     var reliefShadow: Color
 
@@ -37,34 +39,39 @@ struct StreakPalette {
         gold: [Color(hex: 0xFBE3A1), Color(hex: 0xF0B952), Color(hex: 0xC27F22)],
         glow: Color(hex: 0xFFB547),
         flakes: [Color(hex: 0xD9A441), Color(hex: 0xB8822E), Color(hex: 0xFFE7A3)],
-        faceLit: [RGB(hex: 0xF6D48A), RGB(hex: 0xD9A548), RGB(hex: 0xA8742A)],
         faceDull: [RGB(hex: 0xA08A55), RGB(hex: 0x7E6838), RGB(hex: 0x594622)],
-        faceAway: [RGB(hex: 0xB8A566), RGB(hex: 0x8D7A3C), RGB(hex: 0x625024)],
-        edgeLit: [RGB(hex: 0xD1A048), RGB(hex: 0x7A5218), RGB(hex: 0xAD7F30)],
+        facePolished: [RGB(hex: 0xEBC766), RGB(hex: 0xD1A443), RGB(hex: 0xA97E2E)],
+        faceChampagne: [RGB(hex: 0xF6EAB8), RGB(hex: 0xE4CE8A), RGB(hex: 0xC4A862)],
+        facePeach: [RGB(hex: 0xF3C28C), RGB(hex: 0xDE9D62), RGB(hex: 0xB5763F)],
         edgeDull: [RGB(hex: 0x6E5A30), RGB(hex: 0x3E3118), RGB(hex: 0x574626)],
-        edgeAway: [RGB(hex: 0x8F7E45), RGB(hex: 0x4E4220), RGB(hex: 0x6E5E30)],
-        reliefLight: Color(hex: 0xFFF0C2),
-        reliefShadow: Color(hex: 0x5E3E0E)
+        edgePolished: [RGB(hex: 0xDDBB6E), RGB(hex: 0x86652A), RGB(hex: 0xB89048)],
+        edgeChampagne: [RGB(hex: 0xF1E4B8), RGB(hex: 0xB59C5E), RGB(hex: 0xDCC688)],
+        reliefLight: Color(hex: 0xFFF4D2),
+        reliefShadow: Color(hex: 0x6A4812)
     )
 
-    /// - Parameters:
-    ///   - ignition: 0 tarnished, 1 polished, past 1 flaring towards white gold.
-    ///   - light: 1 facing the light, 0 turned away from it.
-    func face(ignition: Double, light: Double) -> [Color] {
-        shade(dull: faceDull, lit: faceLit, away: faceAway, ignition: ignition, light: light)
+    /// - Parameter ignition: 0 tarnished, 1 polished, past 1 flaring towards white gold.
+    func face(ignition: Double, light: CoinLight) -> [Color] {
+        let lit = (0..<facePolished.count).map { index in
+            facePolished[index]
+                .mixed(with: faceChampagne[index], by: light.champagne)
+                .mixed(with: facePeach[index], by: light.peach)
+        }
+        return shade(dull: faceDull, lit: lit, ignition: ignition)
     }
 
-    func edge(ignition: Double, light: Double) -> [Color] {
-        shade(dull: edgeDull, lit: edgeLit, away: edgeAway, ignition: ignition, light: light)
+    func edge(ignition: Double, light: CoinLight) -> [Color] {
+        let lit = (0..<edgePolished.count).map { index in
+            edgePolished[index].mixed(with: edgeChampagne[index], by: light.champagne)
+        }
+        return shade(dull: edgeDull, lit: lit, ignition: ignition)
     }
 
-    private func shade(dull: [RGB], lit: [RGB], away: [RGB], ignition: Double, light: Double) -> [Color] {
-        let flare = RGB(hex: 0xFFF4D0)
+    private func shade(dull: [RGB], lit: [RGB], ignition: Double) -> [Color] {
+        let flare = RGB(hex: 0xFFF6DA)
         return (0..<lit.count).map { index in
-            let base = ignition <= 1
-                ? dull[index].mixed(with: lit[index], by: max(ignition, 0))
-                : lit[index].mixed(with: flare, by: min(ignition - 1, 1) * 0.6)
-            return base.mixed(with: away[index], by: (1 - min(max(light, 0), 1)) * 0.45).color
+            let polished = dull[index].mixed(with: lit[index], by: min(max(ignition, 0), 1))
+            return polished.mixed(with: flare, by: min(max(ignition - 1, 0), 1) * 0.6).color
         }
     }
 }

@@ -230,6 +230,32 @@ struct ArcLayoutTests {
     }
 }
 
+struct CoinLightTests {
+    @Test("Face-on, the gold sits between champagne and peach")
+    func faceOn() {
+        let light = CoinLight(yaw: 0)
+        #expect(light.champagne > 0.3 && light.champagne < 0.8)
+        #expect(light.peach > 0.1 && light.peach < 0.5)
+    }
+
+    @Test("Swaying one way goes champagne, the other way goes peach")
+    func sway() {
+        let towards = CoinLight(yaw: CelebrationTimeline.restingYaw + 14)
+        let away = CoinLight(yaw: CelebrationTimeline.restingYaw - 14)
+        #expect(towards.champagne > away.champagne)
+        #expect(away.peach > towards.peach)
+        #expect(towards.facing > away.facing)
+    }
+
+    @Test("Stays within its ranges all the way round", arguments: stride(from: -180.0, through: 900, by: 7.5).map { $0 })
+    func ranges(yaw: Double) {
+        let light = CoinLight(yaw: yaw)
+        #expect((0...1).contains(light.facing))
+        #expect((0...0.8).contains(light.champagne))
+        #expect((0...0.5).contains(light.peach))
+    }
+}
+
 struct CelebrationClockTests {
     @Test("Waits at zero until started, and jumps to the end for Reduce Motion")
     func elapsed() {
