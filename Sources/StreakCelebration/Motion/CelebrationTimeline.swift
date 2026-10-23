@@ -7,8 +7,8 @@ struct CelebrationFrame: Equatable, Sendable {
     /// Points above the resting position.
     var tokenLift: Double
     var tokenScale: Double
-    /// Brightness of the gold inlay: dull before the spin, flashing past 1 as the token lands, then 1.
-    var inlayGlow: Double
+    /// How lit the flame is: 0 cold ash, warming a little as it spins, flaring past 1 as it lands, then 1.
+    var ignition: Double
     /// Warm light behind the hero.
     var glow: Double
     /// Gold leaf falling across the screen.
@@ -28,7 +28,7 @@ enum CelebrationTimeline {
     static let spin = 0.40
     /// The front comes round carrying the new count.
     static let reveal = 1.00
-    /// It settles facing the viewer: the gold lights up and gold leaf flies.
+    /// It settles facing the viewer and ignites: embers fly and gold leaf starts to fall.
     static let land = 1.55
     static let week = 2.45
     static let actions = 3.40
@@ -55,7 +55,8 @@ enum CelebrationTimeline {
         .to(0.96, at: anticipate, over: spin - anticipate, .easeOut)
         .to(1.06, at: spin, over: 0.6, .easeOut)
         .to(1, at: 1.40, over: 0.6, .spring(damping: 0.5))
-    private static let inlayGlow = Track(0.35)
+    private static let ignition = Track(0)
+        .to(0.18, at: spin, over: land - spin - 0.05, .easeIn)
         .to(1.35, at: land - 0.05, over: 0.15, .easeOut)
         .to(1, at: land + 0.1, over: 0.6, .easeOut)
     private static let glow = Track(0.2)
@@ -72,7 +73,7 @@ enum CelebrationTimeline {
     ///   - idleMotion: Whether the settled token keeps swaying and floating. Off for Reduce Motion.
     static func frame(at time: Double, idleMotion: Bool = true) -> CelebrationFrame {
         let idleAmount = idleMotion ? idle.value(at: time) : 0
-        // A slow sway so the light keeps catching the gold.
+        // A slow sway so the light keeps moving across the enamel.
         let sway = sin((time - land) * 2 * .pi * 0.16) * 14 * idleAmount
         let bob = sin(time * 2 * .pi * 0.35) * 3 * idleAmount
 
@@ -80,7 +81,7 @@ enum CelebrationTimeline {
             tokenYaw: yaw.value(at: time) + sway,
             tokenLift: lift.value(at: time) + bob,
             tokenScale: scale.value(at: time),
-            inlayGlow: inlayGlow.value(at: time),
+            ignition: ignition.value(at: time),
             glow: glow.value(at: time),
             flakesOpacity: flakes.value(at: time)
         )

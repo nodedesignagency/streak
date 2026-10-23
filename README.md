@@ -1,13 +1,13 @@
 # StreakCelebration
 
-A SwiftUI screen for the moment a user extends their streak. On a dark stage, a black metal token
-winds up and flicks into two full spins. The new count comes round on its front, its gold inlay lights
-up as it lands, and gold leaf starts to fall. Then the week's dots pop in and the actions arrive.
+A SwiftUI screen for the moment a user extends their streak. On a dark stage, a flame-shaped token
+of cold ash winds up and flicks into two full spins. The new count comes round on its front, it bursts
+into fire as it lands, and gold leaf starts to fall. Then the week's dots pop in and the actions arrive.
 
 <p align="center">
   <img src="docs/preview.gif" width="260" alt="Animated preview of the streak celebration">
   &nbsp;&nbsp;
-  <img src="docs/final-frame.png" width="260" alt="Settled state: black token reading 10 day streak, week dots and Continue button">
+  <img src="docs/final-frame.png" width="260" alt="Settled state: flame-shaped fire token reading 10 day streak, week dots and Continue button">
 </p>
 
 > The previews above were rendered from this package's `CelebrationTimeline` and `ParticleField` values (the
@@ -68,15 +68,17 @@ All timing lives in `Motion/CelebrationTimeline.swift`. Every layer is a pure fu
 
 | Time | Beat |
 | --- | --- |
-| 0.00s | The token faces you showing yesterday's count, its gold inlay dull. |
+| 0.00s | The flame token faces you as cold grey ash, showing yesterday's count. |
 | 0.20s | Anticipation: it turns back a little and dips. |
-| 0.40s | **Spin** (light haptic): it flicks into two full turns, rising, so you see its edge and its engraved back go by. |
+| 0.40s | **Spin** (light haptic): it flicks into two full turns, rising and starting to smoulder, so you see its edge and its engraved back go by. |
 | 1.00s | The front comes round carrying the new count, which changed while the back was turned. |
-| 1.55s | **Lands** (success haptic, heavy on a milestone day): it settles face-on, the gold flares and settles lit, gold leaf flies off its edges and starts falling across the screen. From here the token sways gently so the light keeps catching the gold. |
+| 1.55s | **Lands** (success haptic, heavy on a milestone day): it settles face-on and ignites: the ash flares into red-orange-yellow enamel with a hot core, embers fly off its edges, and gold leaf starts falling across the screen. From here the token sways gently so the light keeps moving across it. |
 | 2.45s | The week slides in and the layout lifts; the dots pop in left to right, ending on today's flame with a pulse. |
 | 3.40s | Share and Continue arrive. |
 
-The token is drawn as a projected solid rather than with stacked 3D layers: the visible face is
+The flame outline (`Motion/FlameOutline.swift`) is symmetric on purpose, because the back of a
+spinning token shows its outline mirrored. The token is drawn as a projected solid rather than with
+stacked 3D layers: the visible face is
 squashed by the cosine of its angle and shifted by its thickness, and the edge is the outline stretched
 sideways (`Motion/TokenProjection.swift`). That keeps the depth order right at every angle.
 
@@ -87,7 +89,7 @@ Other details:
 - **VoiceOver** reads "10 day streak" and "6 of 7 days this week", and the hidden buttons stay out of
   the accessibility tree until they appear.
 - The screen always plays on its own dark stage and sets `.preferredColorScheme(.dark)` so the status bar
-  stays readable. Colours are in `Views/StreakPalette.swift`.
+  stays readable. Colours, including the ash and fire materials, are in `Views/StreakPalette.swift`.
 - The line under the week counts down to the next milestone (3, 7, 14, 21, 30, 50, 75, 100, 150, 200, 250,
   300, 365, then every 100 days) and calls it out on the day it's reached.
 
@@ -108,9 +110,10 @@ Run the tests with `swift test`. `Motion` and `Model` don't import SwiftUI, so t
 
 ## References
 
-The token follows the second reference recording: a satin black capsule with an inlaid gold numeral
-(here with "Day streak" stamped beneath it) and an engraved back, spinning to show its edge while gold
-leaf falls. The rest of the look
+The token's motion follows the second reference recording (a thick token spinning to show its edge
+and engraved back while gold leaf falls), and its ash-to-fire ignition echoes the first (a grey flame
+that lights up as the streak extends). It is shaped as the streak flame itself, with the count raised
+on it and "Day streak" stamped beneath. The rest of the look
 comes from these Mobbin screens:
 
 - [Atoms](https://mobbin.com/screens/904f683f-daef-4507-ac61-d77f1dfd7ae8): a dark, dotted stage.

@@ -20,7 +20,7 @@ struct FlameShape: Shape {
     }
 }
 
-/// The token's outline: a full dome on top and generously rounded corners at the bottom.
+/// The token's outline, the flame from `FlameOutline`, fitted to its rect.
 ///
 /// `squash` and `extrude` turn it into the silhouette of the spinning solid: the outline is narrowed by
 /// `squash` (the face turning away) and pushed out on both sides by `extrude` (the edge coming into view).
@@ -32,27 +32,15 @@ struct TokenShape: InsettableShape {
     func path(in rect: CGRect) -> Path {
         let frame = rect.insetBy(dx: insetAmount, dy: insetAmount)
         let minX = Double(frame.minX)
-        let maxX = Double(frame.maxX)
         let minY = Double(frame.minY)
-        let maxY = Double(frame.maxY)
+        let width = Double(frame.width)
+        let height = Double(frame.height)
         let midX = Double(frame.midX)
-        let dome = Double(frame.width) / 2
-        let corner = Double(frame.width) * 0.4
-
-        var outline: [(Double, Double)] = []
-        func arc(centerX: Double, centerY: Double, radius: Double, from start: Double, to end: Double) {
-            let steps = 24
-            for step in 0...steps {
-                let angle = start + (end - start) * Double(step) / Double(steps)
-                outline.append((centerX + cos(angle) * radius, centerY + sin(angle) * radius))
-            }
-        }
-        arc(centerX: midX, centerY: minY + dome, radius: dome, from: .pi, to: 2 * .pi)
-        arc(centerX: maxX - corner, centerY: maxY - corner, radius: corner, from: 0, to: .pi / 2)
-        arc(centerX: minX + corner, centerY: maxY - corner, radius: corner, from: .pi / 2, to: .pi)
 
         var path = Path()
-        for (index, (x, y)) in outline.enumerated() {
+        for (index, unit) in FlameOutline.points.enumerated() {
+            let x = minX + unit.x * width
+            let y = minY + unit.y * height
             let offset = x - midX
             let side: Double = offset < 0 ? -1 : 1
             let point = CGPoint(x: midX + side * (abs(offset) * squash + extrude), y: y)

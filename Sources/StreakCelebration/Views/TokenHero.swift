@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The token spinning in and landing, with the warm light behind it and gold leaf thrown off as it lands.
+/// The token spinning in and landing, with the warm light behind it and embers thrown off as it ignites.
 struct TokenHero: View {
     var clock: CelebrationClock
     var previousStreak: Int
@@ -37,7 +37,7 @@ struct TokenHero: View {
     private func ambience(_ frame: CelebrationFrame) -> some View {
         Circle()
             .fill(RadialGradient(
-                colors: [palette.glow.opacity(0.26), palette.glow.opacity(0)],
+                colors: [palette.glow.opacity(0.32), palette.glow.opacity(0)],
                 center: .center, startRadius: 0, endRadius: 170
             ))
             .frame(width: 340, height: 340)
@@ -57,12 +57,12 @@ struct TokenHero: View {
     }
 
     private func burst(at time: Double) -> some View {
-        let flakes = ParticleField.burst(
+        let embers = ParticleField.burst(
             at: time - CelebrationTimeline.land,
             halfWidth: HeroMetrics.tokenWidth / 2,
             halfHeight: HeroMetrics.tokenHeight / 2
         )
-        return GoldLeafCanvas(flakes: flakes, origin: .center, colors: palette.flakes)
+        return GoldLeafCanvas(flakes: embers, origin: .center, colors: palette.embers)
             .frame(width: HeroMetrics.particleCanvasSize, height: HeroMetrics.particleCanvasSize)
     }
 }

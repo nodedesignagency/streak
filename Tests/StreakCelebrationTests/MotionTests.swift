@@ -56,12 +56,12 @@ struct TrackTests {
 }
 
 struct CelebrationTimelineTests {
-    @Test("Opens facing front, unlit, showing the previous count")
+    @Test("Opens facing front as cold ash, showing the previous count")
     func opensDormant() {
         let frame = CelebrationTimeline.frame(at: 0)
         #expect(frame.tokenYaw == 0)
         #expect(!frame.showsNewCount)
-        #expect(frame.inlayGlow < 0.5)
+        #expect(frame.ignition == 0)
         #expect(frame.flakesOpacity == 0)
     }
 
@@ -96,11 +96,14 @@ struct CelebrationTimelineTests {
         #expect(TokenProjection(yaw: frame.tokenYaw, thickness: HeroMetrics.tokenThickness).showsFront)
     }
 
-    @Test("Lands back down with the gold lighting up")
-    func lands() {
-        let frame = CelebrationTimeline.frame(at: CelebrationTimeline.land)
-        #expect(abs(frame.tokenLift) < 4)
-        #expect(frame.inlayGlow > 1)
+    @Test("Only smoulders while spinning, and ignites as it lands")
+    func ignites() {
+        for time in stride(from: 0, to: CelebrationTimeline.land - 0.05, by: 0.01) {
+            #expect(CelebrationTimeline.frame(at: time).ignition <= 0.2)
+        }
+        let landing = CelebrationTimeline.frame(at: CelebrationTimeline.land)
+        #expect(abs(landing.tokenLift) < 4)
+        #expect(landing.ignition > 1)
     }
 
     @Test("Settles face-on after exactly two turns")
@@ -109,7 +112,7 @@ struct CelebrationTimelineTests {
         #expect(abs(frame.tokenYaw - CelebrationTimeline.restingYaw) < 0.5)
         #expect(abs(frame.tokenScale - 1) < 0.01)
         #expect(abs(frame.tokenLift) < 0.1)
-        #expect(frame.inlayGlow == 1)
+        #expect(frame.ignition == 1)
         #expect(frame.glow == 1)
         #expect(frame.flakesOpacity == 1)
         #expect(frame.showsNewCount)
@@ -187,6 +190,37 @@ struct TokenProjectionTests {
         let silhouette = halfWidth * projection.faceScale + projection.extrude
         let faceEdge = abs(projection.faceOffset) + halfWidth * projection.faceScale
         #expect(abs(silhouette - faceEdge) < 1e-9)
+    }
+}
+
+struct FlameOutlineTests {
+    @Test("Is mirror-symmetric, so the back of the spinning token looks right")
+    func symmetric() {
+        let points = FlameOutline.points
+        for (point, mirror) in zip(points, points.reversed()) {
+            #expect(abs(point.x - (1 - mirror.x)) < 1e-9)
+            #expect(abs(point.y - mirror.y) < 1e-9)
+        }
+    }
+
+    @Test("Fills its unit square, tip at the top and belly at the bottom")
+    func bounds() {
+        let points = FlameOutline.points
+        let xs = points.map(\.x), ys = points.map(\.y)
+        #expect(xs.allSatisfy { $0 >= 0 && $0 <= 1 })
+        #expect(ys.allSatisfy { $0 >= 0 && $0 <= 1 })
+        #expect(abs((ys.min() ?? 1) - 0) < 1e-9)
+        #expect(abs((ys.max() ?? 0) - 1) < 1e-9)
+        #expect((xs.max() ?? 0) > 0.95)
+        // The top of the outline is the centre tongue's tip.
+        let tip = points.min { $0.y < $1.y }
+        #expect(abs((tip?.x ?? 0) - 0.5) < 1e-9)
+    }
+
+    @Test("Starts and ends at the bottom centre, so the path closes cleanly")
+    func closes() {
+        #expect(FlameOutline.points.first?.x == 0.5 && FlameOutline.points.first?.y == 1)
+        #expect(FlameOutline.points.last?.x == 0.5 && FlameOutline.points.last?.y == 1)
     }
 }
 

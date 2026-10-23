@@ -4,10 +4,10 @@ import Foundation
 enum HeroMetrics {
     static let canvasSize = 280.0
 
-    static let tokenWidth = 132.0
-    static let tokenHeight = 204.0
-    static let tokenThickness = 16.0
+    static let tokenWidth = 160.0
+    static let tokenHeight = 210.0
+    static let tokenThickness = 18.0
 
-    /// Gold leaf thrown off the token is drawn on a larger canvas so it can fly past the hero.
+    /// Embers thrown off the token are drawn on a larger canvas so they can fly past the hero.
     static let particleCanvasSize = 440.0
 }

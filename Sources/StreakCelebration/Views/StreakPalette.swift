@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Colours for the celebration. It always plays on a dark, warm stage so the gold reads like metal.
+/// Colours for the celebration. It always plays on a dark, warm stage so the fire reads as light.
 struct StreakPalette {
     var background: Color
     var dotGrid: Color
@@ -12,20 +12,22 @@ struct StreakPalette {
     /// Light to deep gold, for the week dots.
     var gold: [Color]
     var glow: Color
-
-    /// The token's satin black face, top-left to bottom-right.
-    var metal: [Color]
-    /// The token's edge, left to right.
-    var edge: [Color]
-    /// Lettering stamped into the black metal.
-    var engraving: Color
-    /// The "Day streak" label on the token's front: stamped too, but light enough to read at a glance.
-    var stampedLabel: Color
-    /// The inlaid numeral, top to bottom, unlit and lit.
-    var inlayDull: [RGB]
-    var inlayLit: [RGB]
     /// Gold leaf: two tones, then the glint of a flake caught face-on.
     var flakes: [Color]
+    /// Embers thrown off the token as it ignites, likewise.
+    var embers: [Color]
+
+    // The flame token, cold and lit. Each list runs from the tips at the top to the base.
+    var ashBody: [RGB]
+    var fireBody: [RGB]
+    /// The hottest part of the flame, glowing up from the base.
+    var core: Color
+    var ashEdge: [RGB]
+    var fireEdge: [RGB]
+    var ashNumeral: [RGB]
+    var fireNumeral: [RGB]
+    var ashStamp: RGB
+    var fireStamp: RGB
 
     static let night = StreakPalette(
         background: Color(hex: 0x0D0C0B),
@@ -35,24 +37,43 @@ struct StreakPalette {
         tertiaryInk: Color(hex: 0xF7F3EC).opacity(0.3),
         track: Color(hex: 0xF7F3EC).opacity(0.09),
         gold: [Color(hex: 0xFBE3A1), Color(hex: 0xF0B952), Color(hex: 0xC27F22)],
-        glow: Color(hex: 0xFFB547),
-        metal: [Color(hex: 0x2C2B2E), Color(hex: 0x161618), Color(hex: 0x1F1E21)],
-        edge: [Color(hex: 0x3A393D), Color(hex: 0x141416), Color(hex: 0x29282B)],
-        engraving: Color(hex: 0x403F43),
-        stampedLabel: Color(hex: 0x8A878F),
-        inlayDull: [RGB(hex: 0x8C6A3A), RGB(hex: 0x6E4E24), RGB(hex: 0x4E3416)],
-        inlayLit: [RGB(hex: 0xFFEAA8), RGB(hex: 0xF2B544), RGB(hex: 0xB06E1E)],
-        flakes: [Color(hex: 0xD9A441), Color(hex: 0xB8822E), Color(hex: 0xFFE7A3)]
+        glow: Color(hex: 0xFF8A2A),
+        flakes: [Color(hex: 0xD9A441), Color(hex: 0xB8822E), Color(hex: 0xFFE7A3)],
+        embers: [Color(hex: 0xFF9A2E), Color(hex: 0xF2541C), Color(hex: 0xFFE07A)],
+        ashBody: [RGB(hex: 0x45413D), RGB(hex: 0x34312E), RGB(hex: 0x24221F)],
+        fireBody: [RGB(hex: 0xF0441C), RGB(hex: 0xFF7A1A), RGB(hex: 0xFFB627)],
+        core: Color(hex: 0xFFE07A),
+        ashEdge: [RGB(hex: 0x2E2C2A), RGB(hex: 0x181716), RGB(hex: 0x242220)],
+        fireEdge: [RGB(hex: 0xB8380F), RGB(hex: 0x6E1C06), RGB(hex: 0x932C0B)],
+        ashNumeral: [RGB(hex: 0x6A6560), RGB(hex: 0x55514C)],
+        fireNumeral: [RGB(hex: 0xFFFDF4), RGB(hex: 0xFFE9B8)],
+        ashStamp: RGB(hex: 0x5A5652),
+        fireStamp: RGB(hex: 0x8A2A0E)
     )
 
-    /// The numeral's gradient at a given brightness: 0 dull bronze, 1 lit gold, past 1 flaring towards white.
-    func inlay(brightness: Double) -> [Color] {
-        let white = RGB(hex: 0xFFFFFF)
-        return zip(inlayDull, inlayLit).map { dull, lit in
-            if brightness <= 1 {
-                return dull.mixed(with: lit, by: max(brightness, 0)).color
+    func body(ignition: Double) -> [Color] {
+        blend(ashBody, fireBody, ignition: ignition, flareTo: RGB(hex: 0xFFE9A0))
+    }
+
+    func edge(ignition: Double) -> [Color] {
+        blend(ashEdge, fireEdge, ignition: ignition, flareTo: RGB(hex: 0xFF7A1A))
+    }
+
+    func numeral(ignition: Double) -> [Color] {
+        blend(ashNumeral, fireNumeral, ignition: ignition, flareTo: RGB(hex: 0xFFFFFF))
+    }
+
+    func stamp(ignition: Double) -> Color {
+        ashStamp.mixed(with: fireStamp, by: min(max(ignition, 0), 1)).color
+    }
+
+    /// Ash at 0, lit at 1; past 1 the flare pushes the colours towards `flareTo`.
+    private func blend(_ cold: [RGB], _ lit: [RGB], ignition: Double, flareTo flare: RGB) -> [Color] {
+        zip(cold, lit).map { ash, fire in
+            if ignition <= 1 {
+                return ash.mixed(with: fire, by: max(ignition, 0)).color
             }
-            return lit.mixed(with: white, by: min(brightness - 1, 1) * 0.6).color
+            return fire.mixed(with: flare, by: min(ignition - 1, 1) * 0.6).color
         }
     }
 }
