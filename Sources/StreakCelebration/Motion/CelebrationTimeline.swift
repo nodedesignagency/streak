@@ -7,7 +7,7 @@ struct CelebrationFrame: Equatable, Sendable {
     /// Points above the resting position.
     var tokenLift: Double
     var tokenScale: Double
-    /// How lit the flame is: 0 cold ash, warming a little as it spins, flaring past 1 as it lands, then 1.
+    /// How polished the coin looks: 0 tarnished, warming a little as it spins, flaring past 1 as it lands, then 1.
     var ignition: Double
     /// Warm light behind the hero.
     var glow: Double
@@ -28,7 +28,7 @@ enum CelebrationTimeline {
     static let spin = 0.40
     /// The front comes round carrying the new count.
     static let reveal = 1.00
-    /// It settles facing the viewer and ignites: embers fly and gold leaf starts to fall.
+    /// It settles facing the viewer and lights up: gold leaf flies off it and starts to fall.
     static let land = 1.55
     static let week = 2.45
     static let actions = 3.40
@@ -73,7 +73,7 @@ enum CelebrationTimeline {
     ///   - idleMotion: Whether the settled token keeps swaying and floating. Off for Reduce Motion.
     static func frame(at time: Double, idleMotion: Bool = true) -> CelebrationFrame {
         let idleAmount = idleMotion ? idle.value(at: time) : 0
-        // A slow sway so the light keeps moving across the enamel.
+        // A slow sway so the light keeps moving across the gold.
         let sway = sin((time - land) * 2 * .pi * 0.16) * 14 * idleAmount
         let bob = sin(time * 2 * .pi * 0.35) * 3 * idleAmount
 

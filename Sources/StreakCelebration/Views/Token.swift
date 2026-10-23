@@ -1,28 +1,32 @@
 import SwiftUI
 
-/// A flame-shaped enamel token with the streak raised on the front and an engraving on the back, drawn
-/// mid-spin from a `CelebrationFrame`. It starts as cold ash and catches fire as it lands.
+/// A thick brushed-gold coin with a streak flame struck in the middle and the count round its rim,
+/// drawn mid-spin from a `CelebrationFrame`. It turns from tarnished to polished as it lands.
 struct Token: View {
     var frame: CelebrationFrame
-    /// The count currently on the front: the previous streak until the token has turned its back.
+    /// The count currently on the front: the previous streak until the coin has turned its back.
     var count: Int
     var streak: Int
-    /// When the streak was extended, engraved on the back.
+    /// When the streak was extended, struck on the back.
     var earnedOn: String
     var palette: StreakPalette
 
-    private let width = HeroMetrics.tokenWidth
-    private let height = HeroMetrics.tokenHeight
+    private let diameter = HeroMetrics.tokenWidth
 
     var body: some View {
         let projection = TokenProjection(yaw: frame.tokenYaw, thickness: HeroMetrics.tokenThickness)
+        let light = lightFacing
         ZStack {
-            // The edge: the outline swept through the token's thickness, lit as it turns towards us.
+            // The milled edge: the outline swept through the coin's thickness, lit as it turns towards us.
             TokenShape(squash: projection.faceScale, extrude: projection.extrude)
-                .fill(LinearGradient(colors: palette.edge(ignition: frame.ignition), startPoint: .leading, endPoint: .trailing))
+                .fill(LinearGradient(
+                    colors: palette.edge(ignition: frame.ignition, light: light),
+                    startPoint: .leading,
+                    endPoint: .trailing
+                ))
                 .overlay {
                     TokenShape(squash: projection.faceScale, extrude: projection.extrude)
-                        .fill(palette.ink.opacity(0.08 * projection.edgeExposure))
+                        .fill(palette.reliefLight.opacity(0.12 * projection.edgeExposure))
                 }
 
             Group {
@@ -35,123 +39,178 @@ struct Token: View {
             .scaleEffect(x: max(projection.faceScale, 0.001), y: 1)
             .offset(x: projection.faceOffset)
         }
-        .frame(width: width, height: height)
+        .frame(width: diameter, height: diameter)
         .scaleEffect(frame.tokenScale)
         .offset(y: -frame.tokenLift)
     }
 
+    /// 1 when the face is turned towards the light (a little left of face-on), falling off as it turns away.
+    private var lightFacing: Double {
+        pow(max(0, cos((frame.tokenYaw - 25) * .pi / 180)), 2)
+    }
+
+    private var colors: [Color] {
+        palette.face(ignition: frame.ignition, light: lightFacing)
+    }
+
     // MARK: Faces
 
-    /// Enamel in the flame's colours, with a hot core, a gloss, a bevelled rim, an inset groove and a
-    /// sheen that slides across as the token turns.
+    /// Brushed gold with a raised rim, and a highlight and sheen that drift across as the coin turns.
     private func face<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        let heat = min(max(frame.ignition, 0), 1)
-        let sheen = -sin((frame.tokenYaw - 15) * .pi / 180) * width * 1.1
+        let rim = diameter * 0.075
+        let drift = -sin((frame.tokenYaw - 15) * .pi / 180)
         return ZStack {
-            TokenShape()
-                .fill(LinearGradient(colors: palette.body(ignition: frame.ignition), startPoint: .top, endPoint: .bottom))
-            TokenShape()
-                .fill(RadialGradient(
-                    colors: [palette.core.opacity(0.9 * heat), palette.core.opacity(0)],
-                    center: UnitPoint(x: 0.5, y: 0.8),
-                    startRadius: 0,
-                    endRadius: height * 0.5
-                ))
+            Circle()
+                .fill(LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing))
+            BrushedRings(color: palette.reliefLight)
 
-            // A soft streak of gloss down the left of the belly, like light on glazed enamel, clear of the number.
-            Capsule()
-                .fill(Color.white.opacity(0.08 + 0.2 * heat))
-                .frame(width: width * 0.06, height: height * 0.2)
-                .rotationEffect(.degrees(-6))
-                .blur(radius: 2.5)
-                .position(x: width * 0.12, y: height * 0.62)
-
-            TokenShape()
+            // The raised rim, lit from the top left, and the step down from it into the field.
+            Circle()
                 .strokeBorder(
                     LinearGradient(
-                        colors: [.white.opacity(0.4), .white.opacity(0.02), .black.opacity(0.35)],
+                        colors: [palette.reliefLight.opacity(0.75), colors[1].opacity(0), palette.reliefShadow.opacity(0.65)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    lineWidth: 2.5
+                    lineWidth: rim
                 )
-            TokenShape(insetAmount: 10)
-                .stroke(palette.stamp(ignition: frame.ignition).opacity(0.55), lineWidth: 1.5)
+            Circle()
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [palette.reliefShadow.opacity(0.75), palette.reliefLight.opacity(0.55)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
+                )
+                .padding(rim)
 
             content()
 
+            // A soft hot spot and a narrow sheen, both sliding with the turn.
+            Circle()
+                .fill(RadialGradient(
+                    colors: [Color.white.opacity(0.32 * lightFacing), Color.white.opacity(0)],
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: diameter * 0.4
+                ))
+                .frame(width: diameter * 0.8, height: diameter * 0.8)
+                .offset(x: drift * diameter * 0.3, y: -diameter * 0.16)
+                .blendMode(.plusLighter)
             LinearGradient(
-                colors: [.white.opacity(0), .white.opacity(0.16), .white.opacity(0)],
+                colors: [.white.opacity(0), .white.opacity(0.14), .white.opacity(0)],
                 startPoint: .leading,
                 endPoint: .trailing
             )
-            .frame(width: width * 0.5, height: height * 1.4)
+            .frame(width: diameter * 0.45, height: diameter * 1.4)
             .rotationEffect(.degrees(18))
-            .offset(x: sheen)
+            .offset(x: drift * diameter * 1.1)
             .blendMode(.plusLighter)
         }
-        .frame(width: width, height: height)
-        .mask { TokenShape() }
+        .frame(width: diameter, height: diameter)
+        .clipShape(Circle())
     }
 
     private var front: some View {
-        // Placed by fraction of the token rather than stacked, so the font's line padding can't shift them.
         ZStack {
-            Text("\(count)")
-                .font(.system(size: 92, weight: .black).width(.condensed))
-                .foregroundStyle(LinearGradient(
-                    colors: palette.numeral(ignition: frame.ignition),
-                    startPoint: .top,
-                    endPoint: .bottom
-                ))
-                .lineLimit(1)
-                .minimumScaleFactor(0.3)
-                .frame(width: width * 0.62)
-                // Raised off the enamel, with a warm glow once it's lit.
-                .shadow(color: palette.stamp(ignition: frame.ignition).opacity(0.85), radius: 0, x: 0, y: 2)
-                .shadow(color: palette.core.opacity(0.6 * min(max(frame.ignition, 0), 1)), radius: 10)
-                .position(x: width / 2, y: height * 0.62)
+            flame
+                .offset(y: diameter * 0.04)
 
-            Text("Day streak")
-                .font(.system(size: 10, weight: .heavy))
-                .tracking(2)
-                .textCase(.uppercase)
-                .foregroundStyle(palette.stamp(ignition: frame.ignition))
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .frame(width: width * 0.62)
-                .modifier(Stamped())
-                .position(x: width / 2, y: height * 0.86)
+            ArcText(
+                text: "\(count) Day streak".uppercased(),
+                radius: diameter * 0.355,
+                placement: .top,
+                font: .system(size: 12, weight: .heavy),
+                degreesPerCharacter: 9.5
+            )
+            .foregroundStyle(colors[0])
+            .modifier(Embossed(palette: palette))
+
+            ArcText(
+                text: "• • •",
+                radius: diameter * 0.37,
+                placement: .bottom,
+                font: .system(size: 9, weight: .heavy),
+                degreesPerCharacter: 9
+            )
+            .foregroundStyle(colors[0])
+            .modifier(Embossed(palette: palette))
+        }
+        .frame(width: diameter, height: diameter)
+    }
+
+    /// The streak flame struck in relief, with its teardrop counter sunk into it.
+    private var flame: some View {
+        let width = diameter * 0.4
+        let height = width * 1.1
+        return ZStack {
+            FlameShape()
+                .fill(LinearGradient(colors: [colors[0], colors[1]], startPoint: .top, endPoint: .bottom))
+            DropShape()
+                .fill(LinearGradient(colors: [colors[2], colors[1]], startPoint: .top, endPoint: .bottom))
+                .overlay {
+                    DropShape().stroke(palette.reliefShadow.opacity(0.55), lineWidth: 1)
+                }
+                .frame(width: width * 0.38, height: height * 0.44)
+                .offset(y: height * 0.2)
         }
         .frame(width: width, height: height)
+        .modifier(Embossed(palette: palette))
     }
 
     private var back: some View {
         VStack(spacing: 7) {
             Text("STREAK")
-                .font(.system(size: 10, weight: .heavy))
+                .font(.system(size: 11, weight: .heavy))
                 .tracking(3)
             Rectangle()
-                .frame(width: 22, height: 1)
+                .frame(width: 24, height: 1.5)
             Text("\(streak) DAYS")
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: 16, weight: .heavy))
                 .tracking(1.5)
             Text(earnedOn)
-                .font(.system(size: 8, weight: .semibold))
+                .font(.system(size: 9, weight: .bold))
                 .tracking(2)
         }
-        .foregroundStyle(palette.stamp(ignition: frame.ignition))
-        .modifier(Stamped())
-        .position(x: width / 2, y: height * 0.64)
-        .frame(width: width, height: height)
+        .foregroundStyle(colors[0])
+        .modifier(Embossed(palette: palette))
     }
 }
 
-/// Lettering pressed into the enamel: a shadowed lip above and a catch-light below.
-private struct Stamped: ViewModifier {
+/// Raised relief: a catch-light on the top-left edge and a soft shadow falling bottom-right.
+private struct Embossed: ViewModifier {
+    var palette: StreakPalette
+
     func body(content: Content) -> some View {
         content
-            .shadow(color: .black.opacity(0.35), radius: 0, x: 0, y: -1)
-            .shadow(color: .white.opacity(0.18), radius: 0, x: 0, y: 1)
+            .shadow(color: palette.reliefLight.opacity(0.8), radius: 0, x: -0.8, y: -0.8)
+            .shadow(color: palette.reliefShadow.opacity(0.7), radius: 0.6, x: 1, y: 1.2)
+    }
+}
+
+/// Fine concentric rings, like a lathe-brushed metal face.
+private struct BrushedRings: View {
+    var color: Color
+
+    var body: some View {
+        Canvas { context, size in
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+            let maxRadius = Double(min(size.width, size.height)) / 2
+            var radius = 3.0
+            var light = true
+            while radius < maxRadius {
+                let ring = Path(ellipseIn: CGRect(
+                    x: Double(center.x) - radius,
+                    y: Double(center.y) - radius,
+                    width: radius * 2,
+                    height: radius * 2
+                ))
+                context.stroke(ring, with: .color(light ? color.opacity(0.05) : Color.black.opacity(0.05)), lineWidth: 1)
+                radius += 2.5
+                light.toggle()
+            }
+        }
+        .allowsHitTesting(false)
     }
 }

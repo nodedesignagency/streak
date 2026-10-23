@@ -20,10 +20,29 @@ struct FlameShape: Shape {
     }
 }
 
-/// The token's outline, the flame from `FlameOutline`, fitted to its rect.
+/// A teardrop with its tip at the top.
+struct DropShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        func point(_ x: Double, _ y: Double) -> CGPoint {
+            CGPoint(x: Double(rect.minX) + x * Double(rect.width), y: Double(rect.minY) + y * Double(rect.height))
+        }
+
+        var path = Path()
+        path.move(to: point(0.5, 0))
+        path.addCurve(to: point(0, 0.66), control1: point(0.32, 0.22), control2: point(0, 0.40))
+        path.addCurve(to: point(0.5, 1), control1: point(0, 0.86), control2: point(0.22, 1))
+        path.addCurve(to: point(1, 0.66), control1: point(0.78, 1), control2: point(1, 0.86))
+        path.addCurve(to: point(0.5, 0), control1: point(1, 0.40), control2: point(0.68, 0.22))
+        path.closeSubpath()
+        return path
+    }
+}
+
+/// The coin's outline: a circle fitted to its rect.
 ///
-/// `squash` and `extrude` turn it into the silhouette of the spinning solid: the outline is narrowed by
-/// `squash` (the face turning away) and pushed out on both sides by `extrude` (the edge coming into view).
+/// `squash` and `extrude` turn it into the silhouette of the spinning coin: the circle is narrowed by
+/// `squash` (the face turning away) and pushed out on both sides by `extrude` (the milled edge coming
+/// into view), which gives the flat-sided lozenge a thick coin shows mid-turn.
 struct TokenShape: InsettableShape {
     var squash = 1.0
     var extrude = 0.0
@@ -31,16 +50,17 @@ struct TokenShape: InsettableShape {
 
     func path(in rect: CGRect) -> Path {
         let frame = rect.insetBy(dx: insetAmount, dy: insetAmount)
-        let minX = Double(frame.minX)
-        let minY = Double(frame.minY)
-        let width = Double(frame.width)
-        let height = Double(frame.height)
         let midX = Double(frame.midX)
+        let midY = Double(frame.midY)
+        let radiusX = Double(frame.width) / 2
+        let radiusY = Double(frame.height) / 2
+        let steps = 120
 
         var path = Path()
-        for (index, unit) in FlameOutline.points.enumerated() {
-            let x = minX + unit.x * width
-            let y = minY + unit.y * height
+        for index in 0...steps {
+            let angle = Double(index) / Double(steps) * 2 * .pi
+            let x = midX + cos(angle) * radiusX
+            let y = midY + sin(angle) * radiusY
             let offset = x - midX
             let side: Double = offset < 0 ? -1 : 1
             let point = CGPoint(x: midX + side * (abs(offset) * squash + extrude), y: y)

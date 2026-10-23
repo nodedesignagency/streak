@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Colours for the celebration. It always plays on a dark, warm stage so the fire reads as light.
+/// Colours for the celebration. It always plays on a dark, warm stage so the gold reads like metal.
 struct StreakPalette {
     var background: Color
     var dotGrid: Color
@@ -14,20 +14,18 @@ struct StreakPalette {
     var glow: Color
     /// Gold leaf: two tones, then the glint of a flake caught face-on.
     var flakes: [Color]
-    /// Embers thrown off the token as it ignites, likewise.
-    var embers: [Color]
 
-    // The flame token, cold and lit. Each list runs from the tips at the top to the base.
-    var ashBody: [RGB]
-    var fireBody: [RGB]
-    /// The hottest part of the flame, glowing up from the base.
-    var core: Color
-    var ashEdge: [RGB]
-    var fireEdge: [RGB]
-    var ashNumeral: [RGB]
-    var fireNumeral: [RGB]
-    var ashStamp: RGB
-    var fireStamp: RGB
+    // The coin. Face lists run top-left to bottom-right, edge lists left to right.
+    var faceLit: [RGB]
+    var faceDull: [RGB]
+    /// The olive cast brushed gold takes on when it turns away from the light.
+    var faceAway: [RGB]
+    var edgeLit: [RGB]
+    var edgeDull: [RGB]
+    var edgeAway: [RGB]
+    /// Catch-light and shadow that make the raised rim, lettering and flame stand off the face.
+    var reliefLight: Color
+    var reliefShadow: Color
 
     static let night = StreakPalette(
         background: Color(hex: 0x0D0C0B),
@@ -37,43 +35,36 @@ struct StreakPalette {
         tertiaryInk: Color(hex: 0xF7F3EC).opacity(0.3),
         track: Color(hex: 0xF7F3EC).opacity(0.09),
         gold: [Color(hex: 0xFBE3A1), Color(hex: 0xF0B952), Color(hex: 0xC27F22)],
-        glow: Color(hex: 0xFF8A2A),
+        glow: Color(hex: 0xFFB547),
         flakes: [Color(hex: 0xD9A441), Color(hex: 0xB8822E), Color(hex: 0xFFE7A3)],
-        embers: [Color(hex: 0xFF9A2E), Color(hex: 0xF2541C), Color(hex: 0xFFE07A)],
-        ashBody: [RGB(hex: 0x45413D), RGB(hex: 0x34312E), RGB(hex: 0x24221F)],
-        fireBody: [RGB(hex: 0xF0441C), RGB(hex: 0xFF7A1A), RGB(hex: 0xFFB627)],
-        core: Color(hex: 0xFFE07A),
-        ashEdge: [RGB(hex: 0x2E2C2A), RGB(hex: 0x181716), RGB(hex: 0x242220)],
-        fireEdge: [RGB(hex: 0xB8380F), RGB(hex: 0x6E1C06), RGB(hex: 0x932C0B)],
-        ashNumeral: [RGB(hex: 0x6A6560), RGB(hex: 0x55514C)],
-        fireNumeral: [RGB(hex: 0xFFFDF4), RGB(hex: 0xFFE9B8)],
-        ashStamp: RGB(hex: 0x5A5652),
-        fireStamp: RGB(hex: 0x8A2A0E)
+        faceLit: [RGB(hex: 0xF6D48A), RGB(hex: 0xD9A548), RGB(hex: 0xA8742A)],
+        faceDull: [RGB(hex: 0xA08A55), RGB(hex: 0x7E6838), RGB(hex: 0x594622)],
+        faceAway: [RGB(hex: 0xB8A566), RGB(hex: 0x8D7A3C), RGB(hex: 0x625024)],
+        edgeLit: [RGB(hex: 0xD1A048), RGB(hex: 0x7A5218), RGB(hex: 0xAD7F30)],
+        edgeDull: [RGB(hex: 0x6E5A30), RGB(hex: 0x3E3118), RGB(hex: 0x574626)],
+        edgeAway: [RGB(hex: 0x8F7E45), RGB(hex: 0x4E4220), RGB(hex: 0x6E5E30)],
+        reliefLight: Color(hex: 0xFFF0C2),
+        reliefShadow: Color(hex: 0x5E3E0E)
     )
 
-    func body(ignition: Double) -> [Color] {
-        blend(ashBody, fireBody, ignition: ignition, flareTo: RGB(hex: 0xFFE9A0))
+    /// - Parameters:
+    ///   - ignition: 0 tarnished, 1 polished, past 1 flaring towards white gold.
+    ///   - light: 1 facing the light, 0 turned away from it.
+    func face(ignition: Double, light: Double) -> [Color] {
+        shade(dull: faceDull, lit: faceLit, away: faceAway, ignition: ignition, light: light)
     }
 
-    func edge(ignition: Double) -> [Color] {
-        blend(ashEdge, fireEdge, ignition: ignition, flareTo: RGB(hex: 0xFF7A1A))
+    func edge(ignition: Double, light: Double) -> [Color] {
+        shade(dull: edgeDull, lit: edgeLit, away: edgeAway, ignition: ignition, light: light)
     }
 
-    func numeral(ignition: Double) -> [Color] {
-        blend(ashNumeral, fireNumeral, ignition: ignition, flareTo: RGB(hex: 0xFFFFFF))
-    }
-
-    func stamp(ignition: Double) -> Color {
-        ashStamp.mixed(with: fireStamp, by: min(max(ignition, 0), 1)).color
-    }
-
-    /// Ash at 0, lit at 1; past 1 the flare pushes the colours towards `flareTo`.
-    private func blend(_ cold: [RGB], _ lit: [RGB], ignition: Double, flareTo flare: RGB) -> [Color] {
-        zip(cold, lit).map { ash, fire in
-            if ignition <= 1 {
-                return ash.mixed(with: fire, by: max(ignition, 0)).color
-            }
-            return fire.mixed(with: flare, by: min(ignition - 1, 1) * 0.6).color
+    private func shade(dull: [RGB], lit: [RGB], away: [RGB], ignition: Double, light: Double) -> [Color] {
+        let flare = RGB(hex: 0xFFF4D0)
+        return (0..<lit.count).map { index in
+            let base = ignition <= 1
+                ? dull[index].mixed(with: lit[index], by: max(ignition, 0))
+                : lit[index].mixed(with: flare, by: min(ignition - 1, 1) * 0.6)
+            return base.mixed(with: away[index], by: (1 - min(max(light, 0), 1)) * 0.45).color
         }
     }
 }

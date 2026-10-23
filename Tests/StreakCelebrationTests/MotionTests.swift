@@ -56,7 +56,7 @@ struct TrackTests {
 }
 
 struct CelebrationTimelineTests {
-    @Test("Opens facing front as cold ash, showing the previous count")
+    @Test("Opens facing front, dull, showing the previous count")
     func opensDormant() {
         let frame = CelebrationTimeline.frame(at: 0)
         #expect(frame.tokenYaw == 0)
@@ -96,8 +96,8 @@ struct CelebrationTimelineTests {
         #expect(TokenProjection(yaw: frame.tokenYaw, thickness: HeroMetrics.tokenThickness).showsFront)
     }
 
-    @Test("Only smoulders while spinning, and ignites as it lands")
-    func ignites() {
+    @Test("Stays dull while spinning, and lights up as it lands")
+    func lightsUp() {
         for time in stride(from: 0, to: CelebrationTimeline.land - 0.05, by: 0.01) {
             #expect(CelebrationTimeline.frame(at: time).ignition <= 0.2)
         }
@@ -193,34 +193,40 @@ struct TokenProjectionTests {
     }
 }
 
-struct FlameOutlineTests {
-    @Test("Is mirror-symmetric, so the back of the spinning token looks right")
-    func symmetric() {
-        let points = FlameOutline.points
-        for (point, mirror) in zip(points, points.reversed()) {
-            #expect(abs(point.x - (1 - mirror.x)) < 1e-9)
-            #expect(abs(point.y - mirror.y) < 1e-9)
+struct ArcLayoutTests {
+    @Test("Lettering is centred on twelve o'clock across the top", arguments: ["10 DAY STREAK", "AXA", "W"])
+    func centredOnTop(text: String) throws {
+        let positions = ArcLayout.positions(for: text, placement: .top, degreesPerCharacter: 9)
+        let first = try #require(positions.first)
+        let last = try #require(positions.last)
+        let firstWidth = ArcLayout.relativeWidth(try #require(text.first)) * 9 / 2
+        let lastWidth = ArcLayout.relativeWidth(try #require(text.last)) * 9 / 2
+        // The outer edges of the first and last letters sit symmetrically about the top.
+        #expect(abs((first.angle - firstWidth + 90) + (last.angle + lastWidth + 90)) < 1e-9)
+    }
+
+    @Test("Top lettering runs clockwise; bottom lettering runs the other way so both read left to right")
+    func readsLeftToRight() {
+        let top = ArcLayout.positions(for: "STREAK", placement: .top, degreesPerCharacter: 9)
+        let bottom = ArcLayout.positions(for: "STREAK", placement: .bottom, degreesPerCharacter: 9)
+        #expect(zip(top, top.dropFirst()).allSatisfy { $0.angle < $1.angle })
+        #expect(zip(bottom, bottom.dropFirst()).allSatisfy { $0.angle > $1.angle })
+    }
+
+    @Test("Letters stand square to the circle")
+    func upright() {
+        for position in ArcLayout.positions(for: "10 DAY STREAK", placement: .top, degreesPerCharacter: 9) {
+            #expect(abs(position.rotation - (position.angle + 90)) < 1e-9)
+        }
+        for position in ArcLayout.positions(for: "• • •", placement: .bottom, degreesPerCharacter: 9) {
+            #expect(abs(position.rotation - (position.angle - 90)) < 1e-9)
         }
     }
 
-    @Test("Fills its unit square, tip at the top and belly at the bottom")
-    func bounds() {
-        let points = FlameOutline.points
-        let xs = points.map(\.x), ys = points.map(\.y)
-        #expect(xs.allSatisfy { $0 >= 0 && $0 <= 1 })
-        #expect(ys.allSatisfy { $0 >= 0 && $0 <= 1 })
-        #expect(abs((ys.min() ?? 1) - 0) < 1e-9)
-        #expect(abs((ys.max() ?? 0) - 1) < 1e-9)
-        #expect((xs.max() ?? 0) > 0.95)
-        // The top of the outline is the centre tongue's tip.
-        let tip = points.min { $0.y < $1.y }
-        #expect(abs((tip?.x ?? 0) - 0.5) < 1e-9)
-    }
-
-    @Test("Starts and ends at the bottom centre, so the path closes cleanly")
-    func closes() {
-        #expect(FlameOutline.points.first?.x == 0.5 && FlameOutline.points.first?.y == 1)
-        #expect(FlameOutline.points.last?.x == 0.5 && FlameOutline.points.last?.y == 1)
+    @Test("Narrow characters take less of the arc than wide ones")
+    func widths() {
+        #expect(ArcLayout.relativeWidth("I") < ArcLayout.relativeWidth("A"))
+        #expect(ArcLayout.relativeWidth("W") > ArcLayout.relativeWidth("A"))
     }
 }
 

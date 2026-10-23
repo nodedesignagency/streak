@@ -1,6 +1,6 @@
 import Foundation
 
-/// One flake of gold leaf or one ember. Y grows downwards, matching SwiftUI.
+/// One flake of gold leaf. Y grows downwards, matching SwiftUI.
 struct Particle: Equatable, Sendable {
     var x: Double
     var y: Double
@@ -21,10 +21,10 @@ enum ParticleField {
 
     static let flakeCount = 90
 
-    /// Embers thrown off the token as it lands and ignites, relative to the token's centre.
+    /// Gold leaf thrown off the coin as it lands, relative to its centre.
     /// - Parameters:
     ///   - age: Seconds since landing.
-    ///   - halfWidth: Half the token's width; embers start around its outline.
+    ///   - halfWidth: Half the coin's width; flakes start around its outline.
     ///   - halfHeight: Half the token's height.
     static func burst(at age: Double, halfWidth: Double, halfHeight: Double) -> [Particle] {
         guard age >= 0, age < burstMaxLifetime else { return [] }
