@@ -7,7 +7,7 @@ struct PillButtonStyle<Fill: ShapeStyle>: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(.headline, weight: .semibold))
+            .font(.system(size: 16, weight: .medium))
             .foregroundStyle(labelColor)
             .frame(maxWidth: .infinity, minHeight: 56)
             .background(Capsule().fill(fill))

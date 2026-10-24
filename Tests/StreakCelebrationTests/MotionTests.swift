@@ -62,7 +62,6 @@ struct CelebrationTimelineTests {
         #expect(frame.tokenYaw == 0)
         #expect(!frame.showsNewCount)
         #expect(frame.ignition == 0)
-        #expect(frame.flakesOpacity == 0)
     }
 
     @Test("Winds up the other way before it spins")
@@ -96,7 +95,7 @@ struct CelebrationTimelineTests {
         #expect(TokenProjection(yaw: frame.tokenYaw, thickness: HeroMetrics.tokenThickness).showsFront)
     }
 
-    @Test("Stays dull while spinning, and lights up as it lands")
+    @Test("Stays dull while spinning, and polishes up as it lands")
     func lightsUp() {
         for time in stride(from: 0, to: CelebrationTimeline.land - 0.05, by: 0.01) {
             #expect(CelebrationTimeline.frame(at: time).ignition <= 0.2)
@@ -113,47 +112,50 @@ struct CelebrationTimelineTests {
         #expect(abs(frame.tokenScale - 1) < 0.01)
         #expect(abs(frame.tokenLift) < 0.1)
         #expect(frame.ignition == 1)
-        #expect(frame.glow == 1)
-        #expect(frame.flakesOpacity == 1)
         #expect(frame.showsNewCount)
     }
 
-    @Test("Idle sway keeps the front in view and stays gentle")
-    func swayIsGentle() {
-        for time in stride(from: 3.0, through: 12.0, by: 0.01) {
+    @Test("Without idle motion it never turns again")
+    func staysPutForReduceMotion() {
+        for time in stride(from: CelebrationTimeline.restingTime, through: 40, by: 0.25) {
+            #expect(abs(CelebrationTimeline.frame(at: time, idleMotion: false).tokenYaw - CelebrationTimeline.restingYaw) < 0.5)
+        }
+    }
+
+    @Test("Between idle turns it rests face-on, swaying gently")
+    func restsBetweenTurns() {
+        for time in stride(from: 3.0, through: 40, by: 0.01) {
             let frame = CelebrationTimeline.frame(at: time)
-            #expect(abs(frame.tokenYaw - CelebrationTimeline.restingYaw) <= 15)
             #expect(abs(frame.tokenLift) <= 3.5)
             #expect(frame.showsNewCount)
+            let sinceStart = time - CelebrationTimeline.idleSpinStart
+            let turning = sinceStart >= 0
+                && sinceStart.truncatingRemainder(dividingBy: CelebrationTimeline.idleSpinInterval) < CelebrationTimeline.idleSpinDuration
+            if !turning {
+                let offset = (frame.tokenYaw - CelebrationTimeline.restingYaw).truncatingRemainder(dividingBy: 360)
+                #expect(abs(offset) <= 15 || abs(offset) >= 345)
+            }
         }
+    }
+
+    @Test("Turns a full circle every few seconds once settled")
+    func turnsAgain() {
+        let spins = 3.0
+        let time = CelebrationTimeline.idleSpinStart + spins * CelebrationTimeline.idleSpinInterval - 0.01
+        let frame = CelebrationTimeline.frame(at: time)
+        let turned = frame.tokenYaw - CelebrationTimeline.restingYaw
+        #expect(abs(turned - spins * 360) <= 15)
+        #expect(CelebrationTimeline.idleSpinStart > CelebrationTimeline.restingTime)
     }
 
     @Test("Beats run in order and finish before the resting time")
     func beatsInOrder() {
         let beats = [
             CelebrationTimeline.anticipate, CelebrationTimeline.spin, CelebrationTimeline.reveal,
-            CelebrationTimeline.land, CelebrationTimeline.week,
-            CelebrationTimeline.actions,
+            CelebrationTimeline.land, CelebrationTimeline.details, CelebrationTimeline.actions,
         ]
         #expect(beats == beats.sorted())
         #expect(CelebrationTimeline.actions < CelebrationTimeline.restingTime)
-    }
-
-    @Test("Week dots pop in left to right and are all in place by the resting time")
-    func dotsStagger() {
-        for time in stride(from: CelebrationTimeline.week, through: CelebrationTimeline.restingTime, by: 0.02) {
-            for index in 0..<6 {
-                // No dot starts before the one to its left.
-                let current = CelebrationTimeline.dotAppearance(index: index, at: time)
-                let next = CelebrationTimeline.dotAppearance(index: index + 1, at: time)
-                #expect(next == 0 || current > 0)
-            }
-        }
-        for index in 0..<7 {
-            #expect(CelebrationTimeline.dotAppearance(index: index, at: CelebrationTimeline.week) == 0)
-            #expect(CelebrationTimeline.dotAppearance(index: index, at: CelebrationTimeline.restingTime) == 1)
-            #expect(CelebrationTimeline.todayPulse(index: index, at: CelebrationTimeline.restingTime) == 1)
-        }
     }
 }
 
@@ -263,60 +265,5 @@ struct CelebrationClockTests {
         #expect(CelebrationClock(start: nil, reduceMotion: false).elapsed(at: now) == 0)
         #expect(CelebrationClock(start: now.addingTimeInterval(-2), reduceMotion: false).elapsed(at: now) == 2)
         #expect(CelebrationClock(start: now, reduceMotion: true).elapsed(at: now) == CelebrationTimeline.restingTime)
-    }
-}
-
-struct ParticleFieldTests {
-    @Test("The burst only exists after landing and then settles")
-    func burstLifetime() {
-        #expect(ParticleField.burst(at: -0.01, halfWidth: 66, halfHeight: 102).isEmpty)
-        #expect(ParticleField.burst(at: 0, halfWidth: 66, halfHeight: 102).count == ParticleField.burstCount)
-        #expect(ParticleField.burst(at: ParticleField.burstMaxLifetime, halfWidth: 66, halfHeight: 102).isEmpty)
-    }
-
-    @Test("The burst starts on the token's outline and flies outwards")
-    func burstSpreads() {
-        let distance = { (particles: [Particle]) in
-            particles.map { ($0.x * $0.x + $0.y * $0.y).squareRoot() }
-        }
-        #expect(distance(ParticleField.burst(at: 0, halfWidth: 66, halfHeight: 102)).allSatisfy { $0 >= 65 })
-        let early = distance(ParticleField.burst(at: 0.05, halfWidth: 66, halfHeight: 102)).max() ?? 0
-        let later = distance(ParticleField.burst(at: 0.6, halfWidth: 66, halfHeight: 102)).max() ?? 0
-        #expect(later > early)
-    }
-
-    @Test("Falling flakes stay in their lane and keep falling", arguments: [0.0, 1.3, 7.9, 60.0])
-    func flakesFall(time: Double) {
-        let flakes = ParticleField.flakes(at: time, width: 390, height: 844)
-        #expect(flakes.count == ParticleField.flakeCount)
-        for flake in flakes {
-            #expect(flake.y >= -20 && flake.y < 844 + 20)
-            #expect(flake.x > -30 && flake.x < 390 + 30)
-        }
-    }
-
-    @Test("Flakes stay well-formed", arguments: [0.0, 0.3, 1.0, 2.5, 7.0, 15.0])
-    func wellFormed(time: Double) {
-        let all = ParticleField.burst(at: time, halfWidth: 66, halfHeight: 102)
-            + ParticleField.flakes(at: time, width: 390, height: 844)
-        for flake in all {
-            #expect((0...1).contains(flake.opacity))
-            #expect(flake.width > 0 && flake.height > 0)
-            #expect((0...2).contains(flake.tint))
-        }
-    }
-
-    @Test("Flakes are deterministic")
-    func deterministic() {
-        #expect(ParticleField.burst(at: 0.4, halfWidth: 66, halfHeight: 102) == ParticleField.burst(at: 0.4, halfWidth: 66, halfHeight: 102))
-        #expect(ParticleField.flakes(at: 5.2, width: 390, height: 844) == ParticleField.flakes(at: 5.2, width: 390, height: 844))
-    }
-
-    @Test("Noise stays in the unit interval")
-    func noiseRange() {
-        for index in -500..<500 {
-            let value = Noise.unit(index, 7)
-            #expect(value >= 0 && value < 1)
-        }
     }
 }

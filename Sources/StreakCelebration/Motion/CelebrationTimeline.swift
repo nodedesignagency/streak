@@ -2,17 +2,14 @@ import Foundation
 
 /// Everything the hero needs to draw one frame of the celebration.
 struct CelebrationFrame: Equatable, Sendable {
-    /// Degrees around the vertical axis. 0 faces the viewer; the spin ends two full turns later.
+    /// Degrees around the vertical axis. 0 faces the viewer; the spin ends two full turns later, and it
+    /// keeps turning a full circle every few seconds after that.
     var tokenYaw: Double
     /// Points above the resting position.
     var tokenLift: Double
     var tokenScale: Double
     /// How polished the coin looks: 0 tarnished, warming a little as it spins, flaring past 1 as it lands, then 1.
     var ignition: Double
-    /// Warm light behind the hero.
-    var glow: Double
-    /// Gold leaf falling across the screen.
-    var flakesOpacity: Double
 
     /// The token has turned its back since the spin began, so its front may now carry the new count.
     var showsNewCount: Bool { tokenYaw >= CelebrationTimeline.swapAngle }
@@ -22,16 +19,18 @@ struct CelebrationFrame: Equatable, Sendable {
 enum CelebrationTimeline {
     // MARK: Beats (seconds since the screen started playing)
 
-    /// The token winds up, turning back a little.
+    /// The coin winds up, turning back a little.
     static let anticipate = 0.20
     /// It flicks into two full turns, rising as it goes.
     static let spin = 0.40
     /// The front comes round carrying the new count.
     static let reveal = 1.00
-    /// It settles facing the viewer and lights up: gold leaf flies off it and starts to fall.
+    /// It settles facing the viewer and polishes up; the gold at the bottom of the screen warms up.
     static let land = 1.55
-    static let week = 2.45
-    static let actions = 3.40
+    /// The date, title and description arrive.
+    static let details = 1.85
+    /// The share button arrives.
+    static let actions = 2.60
 
     /// A moment after everything has settled; used for Reduce Motion and for skipping ahead.
     static let restingTime = 4.3
@@ -39,7 +38,11 @@ enum CelebrationTimeline {
     /// Yaw at which the count on the front changes. The token is edge-on here and its back comes next.
     static let swapAngle = 450.0
     static let restingYaw = 720.0
-    static let dotStagger = 0.07
+
+    /// Once settled, the coin turns another full circle every few seconds, like a trophy on a turntable.
+    static let idleSpinStart = land + 4.0
+    static let idleSpinInterval = 6.0
+    static let idleSpinDuration = 1.4
 
     // MARK: Tracks
 
@@ -59,10 +62,6 @@ enum CelebrationTimeline {
         .to(0.18, at: spin, over: land - spin - 0.05, .easeIn)
         .to(1.35, at: land - 0.05, over: 0.15, .easeOut)
         .to(1, at: land + 0.1, over: 0.6, .easeOut)
-    private static let glow = Track(0.2)
-        .to(1, at: land - 0.1, over: 0.6, .easeOut)
-    private static let flakes = Track(0)
-        .to(1, at: land - 0.05, over: 0.3, .easeOut)
     private static let idle = Track(0)
         .to(1, at: land + 0.5, over: 1.0, .easeInOut)
 
@@ -70,7 +69,7 @@ enum CelebrationTimeline {
 
     /// - Parameters:
     ///   - time: Seconds since the screen started playing.
-    ///   - idleMotion: Whether the settled token keeps swaying and floating. Off for Reduce Motion.
+    ///   - idleMotion: Whether the settled coin keeps swaying, floating and turning. Off for Reduce Motion.
     static func frame(at time: Double, idleMotion: Bool = true) -> CelebrationFrame {
         let idleAmount = idleMotion ? idle.value(at: time) : 0
         // A slow sway so the light keeps moving across the gold.
@@ -78,28 +77,19 @@ enum CelebrationTimeline {
         let bob = sin(time * 2 * .pi * 0.35) * 3 * idleAmount
 
         return CelebrationFrame(
-            tokenYaw: yaw.value(at: time) + sway,
+            tokenYaw: yaw.value(at: time) + sway + (idleMotion ? idleSpin(at: time) : 0),
             tokenLift: lift.value(at: time) + bob,
             tokenScale: scale.value(at: time),
-            ignition: ignition.value(at: time),
-            glow: glow.value(at: time),
-            flakesOpacity: flakes.value(at: time)
+            ignition: ignition.value(at: time)
         )
     }
 
-    /// How far a week dot has popped in: 0 before it starts, springing past 1 and settling on 1.
-    static func dotAppearance(index: Int, at time: Double) -> Double {
-        Curve.spring(damping: 0.5).apply((time - dotStart(index: index)) / 0.5)
-    }
-
-    /// Progress (0...1) of the ring that pulses out of today's dot once it has popped in.
-    static func todayPulse(index: Int, at time: Double) -> Double {
-        let start = dotStart(index: index) + 0.2
-        guard time >= start else { return 0 }
-        return min(1, (time - start) / 0.7)
-    }
-
-    private static func dotStart(index: Int) -> Double {
-        week + 0.12 + Double(index) * dotStagger
+    /// Whole turns added since the coin settled, easing in and out of each one.
+    private static func idleSpin(at time: Double) -> Double {
+        guard time >= idleSpinStart else { return 0 }
+        let elapsed = time - idleSpinStart
+        let completed = (elapsed / idleSpinInterval).rounded(.down)
+        let phase = elapsed - completed * idleSpinInterval
+        return 360 * (completed + Curve.easeInOut.apply(phase / idleSpinDuration))
     }
 }

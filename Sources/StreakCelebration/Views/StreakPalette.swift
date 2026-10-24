@@ -1,19 +1,16 @@
 import SwiftUI
 
-/// Colours for the celebration. It always plays on a dark, warm stage so the gold reads like metal.
+/// Colours for the celebration: a charcoal stage that warms into gold towards the bottom, as in the
+/// reference, with the coin's metal on top.
 struct StreakPalette {
     var background: Color
-    var dotGrid: Color
     var ink: Color
     var secondaryInk: Color
     var tertiaryInk: Color
-    var track: Color
-
-    /// Light to deep gold, for the week dots.
-    var gold: [Color]
-    var glow: Color
-    /// Gold leaf: two tones, then the glint of a flake caught face-on.
-    var flakes: [Color]
+    /// The warm wash rising from the bottom of the screen: deep amber, orange gold, bright gold.
+    var warmth: [Color]
+    /// The share button, sitting dark on the gold.
+    var button: Color
 
     // The coin. Face lists run top-left to bottom-right, edge lists left to right.
     var faceDull: [RGB]
@@ -30,15 +27,12 @@ struct StreakPalette {
     var reliefShadow: Color
 
     static let night = StreakPalette(
-        background: Color(hex: 0x0D0C0B),
-        dotGrid: Color(hex: 0xF7F3EC).opacity(0.09),
-        ink: Color(hex: 0xF7F3EC),
-        secondaryInk: Color(hex: 0xF7F3EC).opacity(0.6),
-        tertiaryInk: Color(hex: 0xF7F3EC).opacity(0.3),
-        track: Color(hex: 0xF7F3EC).opacity(0.09),
-        gold: [Color(hex: 0xFBE3A1), Color(hex: 0xF0B952), Color(hex: 0xC27F22)],
-        glow: Color(hex: 0xFFB547),
-        flakes: [Color(hex: 0xD9A441), Color(hex: 0xB8822E), Color(hex: 0xFFE7A3)],
+        background: Color(hex: 0x131313),
+        ink: Color(hex: 0xFFFFFF),
+        secondaryInk: Color(hex: 0xFFFFFF).opacity(0.72),
+        tertiaryInk: Color(hex: 0xFFFFFF).opacity(0.45),
+        warmth: [Color(hex: 0x5A3A0E), Color(hex: 0xE0982C), Color(hex: 0xFFC63F)],
+        button: Color(hex: 0x161616),
         faceDull: [RGB(hex: 0xA08A55), RGB(hex: 0x7E6838), RGB(hex: 0x594622)],
         facePolished: [RGB(hex: 0xEBC766), RGB(hex: 0xD1A443), RGB(hex: 0xA97E2E)],
         faceChampagne: [RGB(hex: 0xF6EAB8), RGB(hex: 0xE4CE8A), RGB(hex: 0xC4A862)],

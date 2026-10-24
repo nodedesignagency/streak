@@ -2,9 +2,9 @@ import SwiftUI
 
 /// A full-screen celebration shown when the user extends their streak.
 ///
-/// A black metal token winds up and flicks into two full spins. The new count comes round on its front,
-/// its gold inlay lights up as it lands, and gold leaf starts to fall. Then the week's dots pop in and the
-/// actions arrive.
+/// A gold coin winds up and flicks into two full spins. The new count comes round on its rim, it polishes
+/// up as it lands and the gold at the bottom of the screen warms up; then the date, title and description
+/// arrive, and the share button. The coin keeps turning every few seconds, like a trophy on a turntable.
 ///
 ///     .fullScreenCover(isPresented: $showStreak) {
 ///         StreakCelebrationView(streak: 10) { showStreak = false }
@@ -14,12 +14,13 @@ import SwiftUI
 public struct StreakCelebrationView: View {
     private let streak: Int
     private let previousStreak: Int
-    private let week: StreakWeek
     private let milestone: StreakMilestone
+    private let dateLine: String
     private let earnedOn: String
+    private let title: String
     private let message: String
     private let shareMessage: String
-    private let onContinue: () -> Void
+    private let onClose: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -30,78 +31,88 @@ public struct StreakCelebrationView: View {
 
     /// - Parameters:
     ///   - streak: The streak after today's activity.
-    ///   - previousStreak: What the token shows before it spins. Defaults to `streak - 1`.
-    ///   - today: The day being celebrated.
-    ///   - calendar: Decides the first day of the week and the weekday names.
-    ///   - message: The line under the week. Defaults to how far the next milestone is.
-    ///   - onContinue: Called when the user taps Continue.
+    ///   - previousStreak: What the coin shows before it spins. Defaults to `streak - 1`.
+    ///   - today: The day being celebrated, shown above the title and on the back of the coin.
+    ///   - message: The paragraph under the title. Defaults to how far the next milestone is.
+    ///   - onClose: Called when the user taps the close button.
     public init(
         streak: Int,
         previousStreak: Int? = nil,
         today: Date = .now,
-        calendar: Calendar = .current,
         message: String? = nil,
-        onContinue: @escaping () -> Void = {}
+        onClose: @escaping () -> Void = {}
     ) {
         let streak = max(streak, 1)
         self.streak = streak
         self.previousStreak = previousStreak ?? streak - 1
-        self.week = StreakWeek(streak: streak, today: today, calendar: calendar)
         self.milestone = StreakMilestone(streak: streak)
+        self.dateLine = today.formatted(.dateTime.month(.twoDigits).day(.twoDigits).year(.twoDigits))
         self.earnedOn = today.formatted(.dateTime.day().month(.abbreviated).year()).uppercased()
-        self.message = message ?? StreakCopy.message(for: streak)
+        self.title = StreakCopy.title(for: streak)
+        self.message = message ?? StreakCopy.description(for: streak)
         self.shareMessage = StreakCopy.share(for: streak)
-        self.onContinue = onContinue
+        self.onClose = onClose
     }
 
     public var body: some View {
         let clock = CelebrationClock(start: start, reduceMotion: reduceMotion)
 
         VStack(spacing: 0) {
-            Spacer(minLength: 12)
-
-            VStack(spacing: 0) {
-                TokenHero(
-                    clock: clock,
-                    previousStreak: previousStreak,
-                    streak: streak,
-                    earnedOn: earnedOn,
-                    palette: palette
-                )
-
-                if stage >= .week {
-                    VStack(spacing: 22) {
-                        WeekDots(week: week, clock: clock, isSettled: stage >= .actions, palette: palette)
-                        Text(message)
-                            .font(.subheadline)
-                            .foregroundStyle(palette.secondaryInk)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.top, 8)
-                    .transition(.opacity.combined(with: .offset(y: 24)))
-                }
+            HStack {
+                Spacer()
+                closeButton
             }
+            .padding(.top, 8)
 
-            Spacer(minLength: 12)
+            Spacer(minLength: 8)
 
-            actions
-                // Always in the layout so its arrival doesn't shove the content up a second time.
+            TokenHero(
+                clock: clock,
+                previousStreak: previousStreak,
+                streak: streak,
+                earnedOn: earnedOn,
+                palette: palette
+            )
+
+            VStack(spacing: 10) {
+                Text(dateLine)
+                    .font(.system(size: 12, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(palette.tertiaryInk)
+                Text(title)
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundStyle(palette.ink)
+                Text(message)
+                    .font(.system(size: 15))
+                    .lineSpacing(3)
+                    .foregroundStyle(palette.secondaryInk)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 16)
+            }
+            .padding(.top, 12)
+            .opacity(stage >= .details ? 1 : 0)
+            .offset(y: stage >= .details ? 0 : 14)
+            .accessibilityElement(children: .combine)
+            .accessibilityHidden(stage < .details)
+
+            // The coin and words sit high, as in the reference: more room below them than above.
+            Spacer(minLength: 16)
+            Spacer(minLength: 0)
+
+            shareButton
                 .opacity(stage >= .actions ? 1 : 0)
-                .offset(y: stage >= .actions ? 0 : 24)
+                .offset(y: stage >= .actions ? 0 : 20)
                 .allowsHitTesting(stage >= .actions)
                 .accessibilityHidden(stage < .actions)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 20)
         .padding(.bottom, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
-            ZStack {
-                palette.background
-                DotGrid(color: palette.dotGrid)
-                GoldLeafRain(clock: clock, palette: palette)
-            }
-            .ignoresSafeArea()
+            StageBackground(palette: palette, warmth: stage >= .landed ? 1 : 0.3)
+                .animation(.easeOut(duration: 1.2), value: stage >= .landed)
+                .ignoresSafeArea()
         }
         .preferredColorScheme(.dark)
         .contentShape(Rectangle())
@@ -118,25 +129,28 @@ public struct StreakCelebrationView: View {
 
     // MARK: Pieces
 
-    private var actions: some View {
-        HStack(spacing: 12) {
-            ShareLink(item: shareMessage) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 19, weight: .semibold))
-                    .accessibilityLabel(Text("Share streak"))
-            }
-            .buttonStyle(PillButtonStyle(fill: palette.ink.opacity(0.1), labelColor: palette.ink))
-            .frame(width: 56)
-
-            Button("Continue", action: onContinue)
-                .buttonStyle(PillButtonStyle(fill: palette.ink, labelColor: palette.background))
+    private var closeButton: some View {
+        Button(action: onClose) {
+            Image(systemName: "xmark")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(palette.ink)
+                .frame(width: 40, height: 40)
+                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(palette.ink.opacity(0.1)))
         }
+        .accessibilityLabel(Text("Close"))
+    }
+
+    private var shareButton: some View {
+        ShareLink(item: shareMessage) {
+            Text("Share your streak")
+        }
+        .buttonStyle(PillButtonStyle(fill: palette.button, labelColor: palette.ink))
     }
 
     // MARK: Choreography
 
     enum Stage: Int, Comparable {
-        case dormant, spinning, landed, week, actions
+        case dormant, spinning, landed, details, actions
 
         static func < (lhs: Stage, rhs: Stage) -> Bool {
             lhs.rawValue < rhs.rawValue
@@ -153,7 +167,7 @@ public struct StreakCelebrationView: View {
         let beats: [(TimeInterval, Stage)] = [
             (CelebrationTimeline.spin, .spinning),
             (CelebrationTimeline.land, .landed),
-            (CelebrationTimeline.week, .week),
+            (CelebrationTimeline.details, .details),
             (CelebrationTimeline.actions, .actions),
         ]
         for (time, next) in beats {
@@ -192,6 +206,38 @@ public struct StreakCelebrationView: View {
     }
 }
 
+/// Charcoal at the top, warming through amber into bright gold at the bottom.
+private struct StageBackground: View {
+    var palette: StreakPalette
+    /// 0 plain charcoal, 1 the full warm wash.
+    var warmth: Double
+
+    var body: some View {
+        ZStack {
+            palette.background
+            LinearGradient(
+                stops: [
+                    .init(color: palette.warmth[0].opacity(0), location: 0.42),
+                    .init(color: palette.warmth[0], location: 0.6),
+                    .init(color: palette.warmth[1], location: 0.8),
+                    .init(color: palette.warmth[2], location: 1),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .opacity(warmth)
+            // Brightest at the bottom centre, a little deeper towards the corners.
+            RadialGradient(
+                colors: [palette.warmth[2].opacity(0.5), palette.warmth[2].opacity(0)],
+                center: .bottom,
+                startRadius: 0,
+                endRadius: 380
+            )
+            .opacity(warmth)
+        }
+    }
+}
+
 #Preview("Streak extended") {
     StreakCelebrationPreview(streak: 10)
 }
@@ -200,7 +246,7 @@ public struct StreakCelebrationView: View {
     StreakCelebrationPreview(streak: 7)
 }
 
-/// Replays the celebration when you tap Continue, so the animation can be tuned in the canvas.
+/// Replays the celebration when you tap close, so the animation can be tuned in the canvas.
 private struct StreakCelebrationPreview: View {
     var streak: Int
     @State private var run = 0

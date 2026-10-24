@@ -2,20 +2,25 @@ import Foundation
 
 /// Words shown on the celebration.
 enum StreakCopy {
-    /// The line under the week: what the next milestone is, or that one was just reached.
-    static func message(for streak: Int) -> String {
+    static func title(for streak: Int) -> String {
+        "\(max(streak, 1)) Day Streak"
+    }
+
+    /// The paragraph under the title: what the coin is for, and what the next milestone is (or that one
+    /// was just reached).
+    static func description(for streak: Int) -> String {
         let milestone = StreakMilestone(streak: streak)
-        if milestone.streak == 1 {
-            return "Day one. Come back tomorrow to keep it going."
-        }
+        let earned = milestone.streak == 1
+            ? "You started a streak by showing up today."
+            : "You earned this coin by showing up \(milestone.streak) days in a row."
         if milestone.isReached {
-            return "You reached the \(milestone.target)-day milestone. Next stop: \(milestone.next) days."
+            return "\(earned) That's the \(milestone.target)-day milestone. Next stop: \(milestone.next) days."
         }
         let days = milestone.daysLeft == 1 ? "day" : "days"
-        return "\(milestone.daysLeft) more \(days) to your \(milestone.target)-day milestone."
+        return "\(earned) \(milestone.daysLeft) more \(days) to your \(milestone.target)-day milestone."
     }
 
     static func share(for streak: Int) -> String {
-        "I'm on a \(streak) day streak! 🔥"
+        "I'm on a \(max(streak, 1)) day streak! 🔥"
     }
 }
