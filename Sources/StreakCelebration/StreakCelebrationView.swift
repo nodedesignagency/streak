@@ -124,7 +124,8 @@ public struct StreakCelebrationView: View {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(palette.ink)
                 .frame(width: 40, height: 40)
-                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(palette.ink.opacity(0.1)))
+                // Solid, so the glow round the edges of the screen stays behind it rather than showing through.
+                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(palette.closeButton))
         }
         .accessibilityLabel(Text("Close"))
     }

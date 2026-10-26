@@ -12,6 +12,9 @@ struct StreakPalette {
     /// The share button: a white pill with dark lettering.
     var button: Color
     var buttonInk: Color
+    /// The close button's square: the grey a tenth of white makes on the charcoal, but solid, so the glow
+    /// can't show through it.
+    var closeButton: Color
 
     /// The badge's chrome edge, left to right, matched to the artwork's silver frame.
     var edgeChrome: [RGB]
@@ -28,6 +31,7 @@ struct StreakPalette {
         glow: [Color(hex: 0xFFC63F), Color(hex: 0xFF7A1A)],
         button: Color(hex: 0xFFFFFF),
         buttonInk: Color(hex: 0x131313),
+        closeButton: Color(hex: 0x2B2B2B),
         edgeChrome: [RGB(hex: 0xDADCDF), RGB(hex: 0x6F7277), RGB(hex: 0xAAADB2)],
         edgeGlint: [RGB(hex: 0xF8F8F9), RGB(hex: 0xA0A3A8), RGB(hex: 0xD4D6D9)],
         reliefLight: Color(hex: 0xFFFFFF)
