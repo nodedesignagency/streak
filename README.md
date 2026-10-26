@@ -4,10 +4,11 @@ A SwiftUI screen for the moment a user extends their streak, laid out like a tro
 fire badge in chrome and glossy enamel, then the date, the title "10 Day Streak" and a short description,
 over a charcoal stage that warms into gold towards the bottom, with a single share button.
 
-The badge holds in three-quarter view, then makes one slow, smooth turn, showing its chrome edge and the
-same artwork on its back, in its own colours from start to finish. The words and the share button arrive
-while it turns; as it comes round to face you the gold at the bottom of the screen warms up. After that it
-turns a full circle every few seconds, like a trophy on a turntable.
+The badge rises from below the screen at twice its size, turning as it comes, and lands at its place
+facing you as the gold at the bottom of the screen warms up. It shows its chrome edge and the same artwork
+on its back, in its own colours from start to finish. Then it shrinks back to its own size, and the words
+and the share button arrive. After that it turns a full circle every few seconds, like a trophy on a
+turntable.
 
 <p align="center">
   <img src="docs/preview.gif" width="260" alt="Animated preview of the streak celebration">
@@ -72,20 +73,22 @@ All timing lives in `Motion/CelebrationTimeline.swift`. Every layer is a pure fu
 
 | Time | Beat |
 | --- | --- |
-| 0.00s | The badge holds still in three-quarter view, turned 37° with its chrome edge showing on the right. The gold wash at the bottom of the screen is dim. |
-| 0.50s | **Turn** (light haptic): it starts the rest of the way round, its right side coming towards you, gathering speed gently. |
-| 0.90s | The date, title and description rise in while it turns. |
-| 1.50s | The share button arrives. |
-| 1.55s | Edge-on; its back, the same artwork as the front, comes round. It is turning fastest as the back goes by (about 180°/s). |
-| 2.75s | Edge-on again; the front comes round and the turn eases off. |
-| 4.10s | **Lands** (success haptic, heavy on a milestone day): it comes to rest face-on and the gold wash warms up. It holds perfectly still. |
-| 6.50s | It turns a full circle the same slow way, and again every six seconds after that. |
+| 0.00s | **Rise** (light haptic): the badge starts 1,000 pt below its place, off the bottom of the screen, at twice its size and turned 37° with its chrome edge on the right. It rises fast, slowing as it nears its place, and turns as it comes, its right side towards you. The gold wash at the bottom of the screen is dim. |
+| 0.52s | Edge-on, low on the screen; its back, the same artwork as the front, comes round. |
+| 0.85s | Its back faces you as it nears its place. It is turning fastest here (about 355°/s). |
+| 1.13s | Edge-on again, the front coming round; the turn eases off. |
+| 1.80s | **Lands** (success haptic, heavy on a milestone day): it comes to rest at its place facing you, still twice its size, and the gold wash warms up. |
+| 2.00s | It shrinks back to its own size over half a second. |
+| 2.55s | The date, title and description rise in. |
+| 3.15s | The share button arrives. |
+| 6.00s | It turns a full circle at half the speed it rose with, and again every six seconds after that. Between turns it holds perfectly still. |
 
-The turn is one 3.6-second ease-in-out (`Curve.easeInOutQuad`) that starts and ends at rest and peaks at
-twice its average speed half-way round. The badge never lifts, grows or bobs; only the turn moves. The
-start angle, direction, duration and curve were measured frame by frame from the trophy-screen recording.
-A hot spot and a sheen slide across the badge as it turns towards and away from the light, and the chrome
-edge glints as it catches it (`Motion/TokenLight.swift`).
+Each turn is an ease-in-out (`Curve.easeInOutQuad`) that starts and ends at rest and peaks at twice its
+average speed half-way round: 1.8 seconds as it rises, twice as fast as the 3.6-second turns once it has
+settled. Rising and turning end together, so it lands just as it faces you. The idle turn's direction,
+length and curve were measured frame by frame from the trophy-screen recording. A hot spot and a sheen
+slide across the badge as it turns towards and away from the light, and the chrome edge glints as it
+catches it (`Motion/TokenLight.swift`).
 
 Both faces of the badge are the artwork itself (`Resources/Badge.xcassets`), shown in its own colours.
 What turns with it is drawn in SwiftUI: the chrome edge, and a hot spot and sheen that slide across the
@@ -132,6 +135,6 @@ a trophy that turns on its own, then a small date, a title and a short descripti
 that warms into gold at the bottom, a dark share pill on the gold and a rounded close button. The badge
 and the title-and-description pairing under it come from the "Fire Streak" badge reference: a hexagon
 with raised chrome outlines and glossy red, orange and yellow enamel, a flame in the centre with an inner
-yellow flame and a white four-point sparkle, and rays out to the left and right. The badge's motion
-follows the trophy-screen recording: the held three-quarter view, the direction of the turn, its length and
-its ease-in-out were measured from it frame by frame. The thick edge comes from the second recording.
+yellow flame and a white four-point sparkle, and rays out to the left and right. Once settled, the badge
+turns the way the coin in the trophy-screen recording does: the direction of the turn, its length and its
+ease-in-out were measured from it frame by frame. The thick edge comes from the second recording.

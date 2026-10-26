@@ -56,17 +56,51 @@ struct TrackTests {
 }
 
 struct CelebrationTimelineTests {
-    func yaw(at time: Double, idleMotion: Bool = true) -> Double {
-        CelebrationTimeline.frame(at: time, idleMotion: idleMotion).tokenYaw
+    func frame(at time: Double, idleMotion: Bool = true) -> CelebrationFrame {
+        CelebrationTimeline.frame(at: time, idleMotion: idleMotion)
     }
 
-    @Test("Opens in three-quarter view and holds still until the turn starts")
-    func opensThreeQuarter() {
-        #expect(yaw(at: 0) == CelebrationTimeline.startYaw)
-        #expect(yaw(at: CelebrationTimeline.spin) == CelebrationTimeline.startYaw)
-        let projection = TokenProjection(yaw: CelebrationTimeline.startYaw, thickness: HeroMetrics.tokenThickness)
-        #expect(projection.showsFront)
-        #expect(projection.faceScale > 0.75 && projection.faceScale < 0.85)
+    func yaw(at time: Double, idleMotion: Bool = true) -> Double {
+        frame(at: time, idleMotion: idleMotion).tokenYaw
+    }
+
+    /// Fastest turning speed, in degrees per second, between two times.
+    func peakSpeed(from start: Double, to end: Double) -> Double {
+        let step = 1.0 / 240
+        return stride(from: start, to: end, by: step).map { (yaw(at: $0) - yaw(at: $0 + step)) / step }.max() ?? 0
+    }
+
+    @Test("Opens below the screen at twice its size, in three-quarter view")
+    func opensBelow() {
+        let opening = frame(at: 0)
+        #expect(opening.tokenScale == 2)
+        #expect(opening.tokenYaw == CelebrationTimeline.startYaw)
+        // Off the bottom of the tallest iPhone (956 pt) even if its place were only 250 pt down the screen.
+        let topEdge = 250 + opening.tokenDrop - HeroMetrics.tokenHeight * opening.tokenScale / 2
+        #expect(topEdge > 956)
+    }
+
+    @Test("Rises without stopping and never overshoots its place")
+    func rises() {
+        var previous = frame(at: 0).tokenDrop
+        for time in stride(from: 0.0, through: CelebrationTimeline.restingTime, by: 1.0 / 120) {
+            let drop = frame(at: time).tokenDrop
+            #expect(drop <= previous + 1e-9)
+            #expect(drop >= 0)
+            previous = drop
+        }
+    }
+
+    @Test("Comes to rest at its place just as it faces the viewer, still twice its size")
+    func lands() {
+        let landing = frame(at: CelebrationTimeline.land)
+        #expect(landing.tokenDrop == 0)
+        #expect(abs(landing.tokenYaw - CelebrationTimeline.restingYaw) < 1e-9)
+        #expect(landing.tokenScale == 2)
+        // Still on its way a moment earlier, on both counts.
+        let before = frame(at: CelebrationTimeline.land - 0.2)
+        #expect(before.tokenDrop > 0)
+        #expect(before.tokenYaw > CelebrationTimeline.restingYaw)
     }
 
     @Test("Only ever turns one way, its right side coming towards the viewer")
@@ -79,7 +113,7 @@ struct CelebrationTimelineTests {
         }
     }
 
-    @Test("Shows its back once on the way round")
+    @Test("Shows its back once on the way up")
     func backGoesByOnce() {
         var passes = 0
         var wasShowingBack = false
@@ -93,24 +127,41 @@ struct CelebrationTimelineTests {
         #expect(passes == 1)
     }
 
-    @Test("Turns slowly: gathers speed to about twice its average, fastest half-way, then eases off")
-    func slowTurn() {
-        let step = 1.0 / 240
-        let turn = stride(from: CelebrationTimeline.spin, to: CelebrationTimeline.land, by: step).map { time in
-            (time: time, speed: (yaw(at: time) - yaw(at: time + step)) / step)
-        }
-        let average = (CelebrationTimeline.startYaw - CelebrationTimeline.restingYaw) / (CelebrationTimeline.land - CelebrationTimeline.spin)
-        let fastest = turn.max { $0.speed < $1.speed }!
-        #expect(abs(fastest.speed / average - 2) < 0.02)
-        #expect(abs(fastest.time - (CelebrationTimeline.spin + CelebrationTimeline.land) / 2) < 0.05)
-        #expect(turn.first!.speed < average * 0.1)
-        #expect(turn.last!.speed < average * 0.1)
+    @Test("Turns twice as fast rising as it does once settled, easing in and out of both")
+    func twiceAsFast() {
+        #expect((CelebrationTimeline.land - CelebrationTimeline.spin) * 2 == CelebrationTimeline.idleSpinDuration)
+        // Per degree: the rising turn covers less than a full circle, so compare average speeds.
+        let rising = peakSpeed(from: CelebrationTimeline.spin, to: CelebrationTimeline.land)
+            / ((CelebrationTimeline.startYaw - CelebrationTimeline.restingYaw) / (CelebrationTimeline.land - CelebrationTimeline.spin))
+        let idleStart = CelebrationTimeline.idleSpinStart
+        let idle = peakSpeed(from: idleStart, to: idleStart + CelebrationTimeline.idleSpinDuration)
+            / (360 / CelebrationTimeline.idleSpinDuration)
+        // Both peak at twice their own average speed, half-way through.
+        #expect(abs(rising - 2) < 0.02)
+        #expect(abs(idle - 2) < 0.02)
     }
 
-    @Test("Settles face-on after the turn")
+    @Test("Shrinks back to its own size after it lands, before the words arrive")
+    func shrinks() {
+        #expect(frame(at: CelebrationTimeline.shrink).tokenScale == 2)
+        let shrunk = CelebrationTimeline.shrink + CelebrationTimeline.shrinkDuration
+        #expect(frame(at: shrunk).tokenScale == 1)
+        #expect(CelebrationTimeline.shrink >= CelebrationTimeline.land)
+        #expect(CelebrationTimeline.details >= shrunk)
+        var previous = 2.0
+        for time in stride(from: CelebrationTimeline.shrink, through: shrunk, by: 1.0 / 120) {
+            let scale = frame(at: time).tokenScale
+            #expect(scale <= previous + 1e-9 && scale >= 1)
+            previous = scale
+        }
+    }
+
+    @Test("Settles face-on at its own size and place")
     func settles() {
-        #expect(abs(yaw(at: CelebrationTimeline.land) - CelebrationTimeline.restingYaw) < 1e-9)
-        #expect(abs(yaw(at: CelebrationTimeline.restingTime, idleMotion: false) - CelebrationTimeline.restingYaw) < 1e-9)
+        let settled = frame(at: CelebrationTimeline.restingTime, idleMotion: false)
+        #expect(abs(settled.tokenYaw - CelebrationTimeline.restingYaw) < 1e-9)
+        #expect(settled.tokenScale == 1)
+        #expect(settled.tokenDrop == 0)
         let projection = TokenProjection(yaw: CelebrationTimeline.restingYaw, thickness: HeroMetrics.tokenThickness)
         #expect(projection.showsFront && abs(projection.faceScale - 1) < 1e-9)
     }
@@ -135,23 +186,23 @@ struct CelebrationTimelineTests {
         }
     }
 
-    @Test("Turns a full circle every few seconds once settled, as slowly as the first turn")
+    @Test("Turns a full circle every few seconds once settled")
     func turnsAgain() {
         let spins = 3.0
         let time = CelebrationTimeline.idleSpinStart + spins * CelebrationTimeline.idleSpinInterval - 0.01
         #expect(abs(CelebrationTimeline.restingYaw - yaw(at: time) - spins * 360) < 1e-9)
         #expect(CelebrationTimeline.idleSpinStart > CelebrationTimeline.restingTime)
-        #expect(CelebrationTimeline.idleSpinDuration == CelebrationTimeline.land - CelebrationTimeline.spin)
         #expect(CelebrationTimeline.idleSpinDuration < CelebrationTimeline.idleSpinInterval)
     }
 
-    @Test("The words and the button arrive while it turns, and it lands before the resting time")
+    @Test("Beats run in order and finish before the resting time")
     func beatsInOrder() {
         let beats = [
-            CelebrationTimeline.spin, CelebrationTimeline.details, CelebrationTimeline.actions, CelebrationTimeline.land,
+            CelebrationTimeline.spin, CelebrationTimeline.land, CelebrationTimeline.shrink,
+            CelebrationTimeline.details, CelebrationTimeline.actions,
         ]
         #expect(beats == beats.sorted())
-        #expect(CelebrationTimeline.land < CelebrationTimeline.restingTime)
+        #expect(CelebrationTimeline.actions < CelebrationTimeline.restingTime)
     }
 }
 
