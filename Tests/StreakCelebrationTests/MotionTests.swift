@@ -333,11 +333,31 @@ struct WarpFieldTests {
         }
     }
 
-    @Test("Fades in as the screen opens")
-    func fadesIn() {
-        #expect(WarpField.visibility(at: 0) == 0)
-        #expect(WarpField.visibility(at: WarpField.fadeIn) == 1)
-        #expect(WarpField.visibility(at: 10) == 1)
+    @Test("Nothing shows until the badge settles; then the streaks set off from the centre one after another")
+    func burstsOut() {
+        for time in stride(from: -2.0, to: 0, by: 0.1) {
+            #expect(WarpField.streaks(at: time, reach: reach).allSatisfy { $0.opacity == 0 })
+        }
+        // Before the badge lands, anything that has set off is still hidden behind it (its flat sides are
+        // half its width from the middle) or too faint to see.
+        func visible(at time: Double) -> [WarpField.Streak] {
+            WarpField.streaks(at: time - CelebrationTimeline.warpStart, reach: reach).filter { streak in
+                let out = (Double(streak.head.x) * Double(streak.head.x) + Double(streak.head.y) * Double(streak.head.y)).squareRoot()
+                return streak.opacity > 0.25 && out > HeroMetrics.tokenWidth / 2
+            }
+        }
+        for time in stride(from: 0.0, to: CelebrationTimeline.land - 0.1, by: 0.02) {
+            #expect(visible(at: time).isEmpty)
+        }
+        #expect(!visible(at: CelebrationTimeline.land + 0.3).isEmpty)
+        func launched(at time: Double) -> Int {
+            WarpField.streaks(at: time, reach: reach).filter { $0.opacity > 0 }.count
+        }
+        let counts = stride(from: 0.0, through: 2.5, by: 0.25).map(launched)
+        #expect(counts == counts.sorted())
+        #expect(counts.first! < WarpField.count / 4)
+        // Within one slowest flight every streak is on its way.
+        #expect(launched(at: WarpField.crossing / 0.7 + 0.05) > WarpField.count * 9 / 10)
     }
 
     @Test("Its pseudo-random numbers are spread across 0..<1")

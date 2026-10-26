@@ -5,9 +5,9 @@ import SwiftUI
 /// The streak badge rises from below the screen at one and a half times its size, spinning in fast and
 /// winding down, and shrinks back to its own size as it settles at its place facing you, in one continuous
 /// movement, while a gold-and-orange glow draws in round the edges of the screen, from the bottom up both
-/// sides to the top, and then pulses. Behind it all, streaks of light rush out from the badge as if it were
-/// jumping to light speed. Then the date, title and description arrive, and the share button. After that the
-/// badge turns a full circle every few seconds, like a trophy on a turntable.
+/// sides to the top, and then pulses. Once the badge has settled, streaks of light start rushing out from
+/// behind it as if it were jumping to light speed. Then the date, title and description arrive, and the share
+/// button. After that the badge turns a full circle every few seconds, like a trophy on a turntable.
 ///
 ///     .fullScreenCover(isPresented: $showStreak) {
 ///         StreakCelebrationView(streak: 10) { showStreak = false }
@@ -250,8 +250,8 @@ private struct WarpBackdrop: View {
     var body: some View {
         // Sixty frames a second is plenty for the streaks, and halves the drawing on ProMotion screens.
         TimelineView(.animation(minimumInterval: 1.0 / 60)) { context in
-            let time = clock.elapsed(at: context.date)
-            let visibility = WarpField.visibility(at: time)
+            // They start bursting out from behind the badge as it settles.
+            let time = clock.elapsed(at: context.date) - CelebrationTimeline.warpStart
             Canvas { canvas, size in
                 // Far enough to reach every corner of the screen.
                 let reach = [CGPoint.zero, CGPoint(x: size.width, y: 0), CGPoint(x: 0, y: size.height), CGPoint(x: size.width, y: size.height)]
@@ -265,7 +265,7 @@ private struct WarpBackdrop: View {
                     line.move(to: tail)
                     line.addLine(to: head)
                     let colour = palette.warp[streak.colour]
-                    let strength = streak.opacity * visibility
+                    let strength = streak.opacity
                     // The bloom: wide and faint.
                     canvas.stroke(
                         line,

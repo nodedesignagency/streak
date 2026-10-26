@@ -5,8 +5,10 @@ import Foundation
 ///
 /// Each streak is a point of light flying straight at the viewer along its own line, at its own speed. Seen in
 /// perspective it races outwards from the centre, faster and faster, stretching as it comes, and once it has
-/// left the screen it starts again far away, too faint to see. Everything is a pure function of time, so the
-/// field never pops, can be scrubbed and tested, and plays the same way every time.
+/// left the screen it starts again far away, too faint to see. The field starts empty: each streak sets off
+/// from the centre after its own short delay, so they burst out of the badge one after another rather than
+/// appearing all at once. Everything is a pure function of time, so the field never pops, can be scrubbed
+/// and tested, and plays the same way every time.
 enum WarpField {
     struct Streak: Equatable, Sendable {
         /// Its two ends, in points from the vanishing point; the head is the bright end, furthest out.
@@ -20,25 +22,27 @@ enum WarpField {
         var colour: Int
     }
 
-    static let count = 180
+    static let count = 80
     /// How long a streak of average speed takes to fly from the centre to the edge, in seconds.
     static let crossing = 1.4
-    /// It fades in over this long when the screen opens.
-    static let fadeIn = 0.6
     /// Where a streak starts, and where it has gone by the end of its flight, as fractions of `reach`. It
     /// starts tucked behind the badge and ends past the furthest corner.
     static let startFraction = 0.16
     static let endFraction = 1.15
 
     /// - Parameters:
-    ///   - time: Seconds since the screen started playing.
+    ///   - time: Seconds since the field started (`CelebrationTimeline.warpStart`); nothing shows before 0.
     ///   - reach: Distance from the vanishing point to the furthest corner of the screen, in points.
     static func streaks(at time: Double, reach: Double) -> [Streak] {
         let start = startFraction * reach
         let end = endFraction * reach
         return (0..<count).map { index in
             let speed = 0.7 + 0.7 * random(index, 0)
-            let progress = fraction(random(index, 1) + time * speed / crossing)
+            let flight = crossing / speed
+            // Each sets off after its own delay of up to one flight, then flies again and again.
+            let delay = random(index, 1) * flight
+            let launched = time >= delay
+            let progress = launched ? fraction((time - delay) / flight) : 0
             let angle = 2 * Double.pi * random(index, 2)
             let spread = 0.85 + 0.3 * random(index, 3)
             // The tail is where the head was a moment ago, so faster streaks are longer.
@@ -60,15 +64,10 @@ enum WarpField {
                 head: point(radius(progress)),
                 width: (0.4 + 0.6 * random(index, 6)) * (0.5 + 2.2 * progress * progress),
                 // Fades in as it sets off, and out at the very end in case it is still on screen.
-                opacity: brightness * smoothstep(progress / 0.3) * smoothstep((1 - progress) / 0.06),
+                opacity: launched ? brightness * smoothstep(progress / 0.3) * smoothstep((1 - progress) / 0.06) : 0,
                 colour: colourRoll < 0.5 ? 0 : colourRoll < 0.8 ? 1 : 2
             )
         }
-    }
-
-    /// How visible the whole field is: 0 when the screen opens, rising to 1 over `fadeIn`.
-    static func visibility(at time: Double) -> Double {
-        smoothstep(time / fadeIn)
     }
 
     // MARK: Helpers

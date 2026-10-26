@@ -3,8 +3,8 @@
 A SwiftUI screen for the moment a user extends their streak, laid out like a trophy screen: a hexagonal
 fire badge in chrome and glossy enamel, then the date, the title "10 Day Streak" and a short description,
 on a charcoal stage with a soft glow just inside the edges of the screen, gold along the top turning
-orange along the bottom, and streaks of light rushing out from behind the badge as if it were jumping to
-light speed. A single white share button sits at the bottom.
+orange along the bottom, and, once the badge has settled, streaks of light rushing out from behind it as
+if it were jumping to light speed. A single white share button sits at the bottom.
 
 The badge rises from below the screen at one and a half times its size, spinning in fast and winding
 down, and shrinks back to its own size as it settles at its place facing you, in one continuous movement,
@@ -80,7 +80,7 @@ All timing lives in `Motion/CelebrationTimeline.swift`. Every layer is a pure fu
 | 0.80s | Still rising and spinning, now about one and a half turns a second, it starts shrinking back to its own size. |
 | 0.90s | The glow has climbed half-way: along the bottom and up both sides to the middle of the screen. |
 | 1.80s | **Lands** (success haptic, heavy on a milestone day): the rise, the spin (nearly three turns in all) and the shrink come to rest together, so it settles at its place, facing you and at its own size, without stopping first. The two ends of the glow meet at the middle of the top, so it runs all the way round. |
-| 1.80s on | The glow pulses every 2.4 seconds: it grows thinner and a little fainter, then comes back to normal. |
+| 1.80s on | The glow pulses every 2.4 seconds: it grows thinner and a little fainter, then comes back to normal. Hyperspace streaks start coming out from behind the badge, one after another, until about 80 are rushing out at once. |
 | 1.95s | The date, title and description rise in. |
 | 2.55s | The share button arrives. |
 | 6.00s | It turns a full circle slowly and evenly, and again every six seconds after that. Between turns it holds perfectly still. |
@@ -121,12 +121,14 @@ Other details:
   its pulse, from a 28 pt band blurred by 14 pt at full strength to 16 pt, 10 pt and 70%, are
   `CelebrationTimeline.glow(at:)`. With Reduce Motion it is there from the start and doesn't pulse.
 - **The hyperspace streaks** are `WarpBackdrop` in `StreakCelebrationView.swift`, drawn on a `Canvas` from
-  `Motion/WarpField.swift`. Each of 180 streaks is a point of light flying straight at you along its own
+  `Motion/WarpField.swift`. Each of 80 streaks is a point of light flying straight at you along its own
   line at its own speed; in perspective it races out from the middle of the badge, faster and longer as it
   comes, and starts again far away once it has gone. They are orange, gold and warm white
   (`StreakPalette.warp`), mostly dim with the odd bright one, each fading from nothing at its tail to a
-  bright head with a soft bloom, added onto the charcoal so they glow. They fade in as the screen opens,
-  run at 60 fps, and are left out with Reduce Motion. The badge reports where it is
+  bright head with a soft bloom, added onto the charcoal so they glow. None show while the badge comes in:
+  each sets off from the centre after its own short delay, starting a moment before the badge lands
+  (`CelebrationTimeline.warpStart`) so the first ones come out from behind it just as it settles. They run
+  at 60 fps and are left out with Reduce Motion. The badge reports where it is
   (`HeroBoundsKey`), so they stay centred on it on every screen size.
 - The description counts down to the next milestone (3, 7, 14, 21, 30, 50, 75, 100, 150, 200, 250, 300,
   365, then every 100 days) and calls it out on the day it's reached.

@@ -34,8 +34,8 @@ struct GlowFrame: Equatable, Sendable {
 /// turns, and winding down as it goes. As it nears its place it starts shrinking back to its own size, and
 /// it settles in one continuous movement: the rise, the spin and the shrink all come to rest together,
 /// facing the viewer. Meanwhile the glow round the edges of the screen draws in from the bottom, up both
-/// sides, meeting at the top as the badge lands, and from then on it pulses. Then the words and the share
-/// button arrive. After that the badge turns a full circle every few seconds, the slow way the coin turns
+/// sides, meeting at the top as the badge lands, and from then on it pulses; as it lands, streaks of light
+/// start bursting out from behind it. Then the words and the share button arrive. After that the badge turns a full circle every few seconds, the slow way the coin turns
 /// in the trophy-screen recording.
 enum CelebrationTimeline {
     // MARK: Beats (seconds since the screen started playing)
@@ -78,6 +78,11 @@ enum CelebrationTimeline {
     static let glowRevealStart = spin
     static let glowPulseStart = land
     static let glowPulsePeriod = 2.4
+
+    /// The hyperspace streaks start bursting out from behind the badge as it settles (`WarpField`). They
+    /// set off a moment before, because each spends the start of its flight hidden behind the badge, so the
+    /// first ones come out from behind it just as it lands.
+    static let warpStart = land - 0.2
 
     // MARK: Tracks
 
