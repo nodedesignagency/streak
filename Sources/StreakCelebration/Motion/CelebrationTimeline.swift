@@ -28,8 +28,8 @@ enum CelebrationTimeline {
     /// It starts shrinking back to its own size while it is still rising and spinning, so it never stops
     /// before it settles.
     static let shrink = 0.8
-    /// It comes to rest at its place, facing the viewer and at its own size, all at once; the gold at the
-    /// bottom of the screen warms up.
+    /// It comes to rest at its place, facing the viewer and at its own size, all at once; the gold glows
+    /// brighten.
     static let land = 1.8
     /// The date, title and description arrive once it has settled.
     static let details = 1.95

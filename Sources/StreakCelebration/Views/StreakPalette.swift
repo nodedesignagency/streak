@@ -1,16 +1,17 @@
 import SwiftUI
 
-/// Colours for the celebration: a charcoal stage that warms into gold towards the bottom, as in the
-/// reference, with the badge's chrome on top. The badge's enamel comes from its artwork.
+/// Colours for the celebration: a charcoal stage lit by gold, glowing round the edges of the screen and
+/// behind the badge, with the badge's chrome on top. The badge's enamel comes from its artwork.
 struct StreakPalette {
     var background: Color
     var ink: Color
     var secondaryInk: Color
     var tertiaryInk: Color
-    /// The warm wash rising from the bottom of the screen: deep amber, orange gold, bright gold.
+    /// The gold glow, from its outer edge to its core: deep amber, orange gold, bright gold.
     var warmth: [Color]
-    /// The share button, sitting dark on the gold.
-    var button: Color
+    /// The share button: a gold pill, top to bottom, with dark lettering.
+    var buttonFill: [Color]
+    var buttonInk: Color
 
     /// The badge's chrome edge, left to right, matched to the artwork's silver frame.
     var edgeChrome: [RGB]
@@ -25,7 +26,8 @@ struct StreakPalette {
         secondaryInk: Color(hex: 0xFFFFFF).opacity(0.72),
         tertiaryInk: Color(hex: 0xFFFFFF).opacity(0.45),
         warmth: [Color(hex: 0x5A3A0E), Color(hex: 0xE0982C), Color(hex: 0xFFC63F)],
-        button: Color(hex: 0x161616),
+        buttonFill: [Color(hex: 0xFFC63F), Color(hex: 0xE0982C)],
+        buttonInk: Color(hex: 0x1A1408),
         edgeChrome: [RGB(hex: 0xDADCDF), RGB(hex: 0x6F7277), RGB(hex: 0xAAADB2)],
         edgeGlint: [RGB(hex: 0xF8F8F9), RGB(hex: 0xA0A3A8), RGB(hex: 0xD4D6D9)],
         reliefLight: Color(hex: 0xFFFFFF)

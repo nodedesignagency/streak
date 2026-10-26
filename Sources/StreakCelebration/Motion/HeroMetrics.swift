@@ -9,4 +9,10 @@ enum HeroMetrics {
     static let tokenWidth = 208.0
     static let tokenHeight = 228.0
     static let tokenThickness = 16.0
+
+    /// The glow behind the badge: how far it spreads, and how far above the badge's centre it is centred.
+    static let spotlightRadius = 360.0
+    static let spotlightRise = 60.0
+    /// Roughly the corner radius of a modern iPhone's screen, for the glow round its edges.
+    static let screenCornerRadius = 54.0
 }
