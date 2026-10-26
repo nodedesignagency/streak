@@ -4,9 +4,9 @@ import SwiftUI
 ///
 /// The streak badge rises from below the screen at one and a half times its size, spinning in fast and
 /// winding down, and shrinks back to its own size as it settles at its place facing you, in one continuous
-/// movement, while the gold-and-orange glow round the edges of the screen brightens. Then the date, title
-/// and description arrive, and the share button. After that it turns a full circle every few seconds, like
-/// a trophy on a turntable.
+/// movement, while a gold-and-orange glow draws in round the edges of the screen, from the bottom up both
+/// sides to the top, and then pulses. Then the date, title and description arrive, and the share button.
+/// After that the badge turns a full circle every few seconds, like a trophy on a turntable.
 ///
 ///     .fullScreenCover(isPresented: $showStreak) {
 ///         StreakCelebrationView(streak: 10) { showStreak = false }
@@ -52,8 +52,6 @@ public struct StreakCelebrationView: View {
 
     public var body: some View {
         let clock = CelebrationClock(start: start, reduceMotion: reduceMotion)
-        // The glow is dim while the badge comes in and brightens as it lands.
-        let glow = stage >= .landed ? 1.0 : 0.3
 
         VStack(spacing: 0) {
             HStack {
@@ -102,8 +100,7 @@ public struct StreakCelebrationView: View {
         .padding(.bottom, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
-            StageBackground(palette: palette, glow: glow)
-                .animation(.easeOut(duration: 1.2), value: stage >= .landed)
+            StageBackground(palette: palette, clock: clock)
                 .ignoresSafeArea()
         }
         .preferredColorScheme(.dark)
@@ -199,28 +196,30 @@ public struct StreakCelebrationView: View {
 }
 
 /// Charcoal, with a soft glow just inside the edges of the screen, gold along the top turning orange along
-/// the bottom.
+/// the bottom. It draws in from the bottom while the badge rises, then pulses (`CelebrationTimeline.glow`).
 private struct StageBackground: View {
     var palette: StreakPalette
-    /// How bright the glow is, 0...1.
-    var glow: Double
+    var clock: CelebrationClock
 
     var body: some View {
         ZStack {
             palette.background
-            // A band centred on the screen's edge and blurred, so only its soft inner half shows: brightest
-            // right at the edge, half as bright about 15 points in, and gone by about 40.
-            RoundedRectangle(cornerRadius: HeroMetrics.screenCornerRadius, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [palette.glow[0].opacity(0.9), palette.glow[1].opacity(0.9)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 28
-                )
-                .blur(radius: 14)
-                .opacity(glow)
+            TimelineView(.animation(paused: clock.reduceMotion)) { context in
+                let glow = CelebrationTimeline.glow(at: clock.elapsed(at: context.date), idleMotion: !clock.reduceMotion)
+                // A band centred on the screen's edge and blurred, so only its soft inner half shows:
+                // brightest right at the edge and gone about 40 points in, a little less at a pulse's thinnest.
+                ScreenEdgeReveal(progress: glow.reveal, cornerRadius: HeroMetrics.screenCornerRadius)
+                    .stroke(
+                        LinearGradient(
+                            colors: [palette.glow[0].opacity(0.9), palette.glow[1].opacity(0.9)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        style: StrokeStyle(lineWidth: glow.bandWidth, lineCap: .round)
+                    )
+                    .blur(radius: glow.blurRadius)
+                    .opacity(glow.strength)
+            }
         }
     }
 }

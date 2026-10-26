@@ -7,7 +7,8 @@ orange along the bottom. A single white share button sits at the bottom.
 
 The badge rises from below the screen at one and a half times its size, spinning in fast and winding
 down, and shrinks back to its own size as it settles at its place facing you, in one continuous movement,
-while the glow round the edges brightens. It shows its chrome edge and the same artwork on its
+while a glow draws in round the edges of the screen, from the bottom up both sides to the top, and then
+pulses. It shows its chrome edge and the same artwork on its
 back, in its own colours from start to finish. Then the words and the share button arrive. After that it
 turns a full circle every few seconds, like a trophy on a turntable.
 
@@ -74,9 +75,11 @@ All timing lives in `Motion/CelebrationTimeline.swift`. Every layer is a pure fu
 
 | Time | Beat |
 | --- | --- |
-| 0.00s | **Rise** (light haptic): the badge starts 900 pt below its place, off the bottom of the screen, at 1.5× its size and turned 37° with its chrome edge on the right. It rises fast, slowing as it nears its place, and comes up spinning hard, its right side towards you: nearly five turns a second, winding down from there. The glow round the edges is dim. |
+| 0.00s | **Rise** (light haptic): the badge starts 900 pt below its place, off the bottom of the screen, at 1.5× its size and turned 37° with its chrome edge on the right. It rises fast, slowing as it nears its place, and comes up spinning hard, its right side towards you: nearly five turns a second, winding down from there. At the same moment the glow starts drawing in round the edges of the screen from the middle of the bottom. |
 | 0.80s | Still rising and spinning, now about one and a half turns a second, it starts shrinking back to its own size. |
-| 1.80s | **Lands** (success haptic, heavy on a milestone day): the rise, the spin (nearly three turns in all) and the shrink come to rest together, so it settles at its place, facing you and at its own size, without stopping first. The glow round the edges brightens. |
+| 0.90s | The glow has climbed half-way: along the bottom and up both sides to the middle of the screen. |
+| 1.80s | **Lands** (success haptic, heavy on a milestone day): the rise, the spin (nearly three turns in all) and the shrink come to rest together, so it settles at its place, facing you and at its own size, without stopping first. The two ends of the glow meet at the middle of the top, so it runs all the way round. |
+| 1.80s on | The glow pulses every 2.4 seconds: it grows thinner and a little fainter, then comes back to normal. |
 | 1.95s | The date, title and description rise in. |
 | 2.55s | The share button arrives. |
 | 6.00s | It turns a full circle slowly and evenly, and again every six seconds after that. Between turns it holds perfectly still. |
@@ -109,10 +112,13 @@ Other details:
   badge itself is decorative because the title says the same thing.
 - The screen always plays on its own dark stage and sets `.preferredColorScheme(.dark)` so the status bar
   stays readable. Colours, including the badge's chrome, are in `Views/StreakPalette.swift`.
-- **The glow** is `StageBackground` in `StreakCelebrationView.swift`: a 28 pt band along the screen's
-  rounded edge, blurred by 14 pt, so the light is brightest right at the edge and fades out about 40 pt in.
-  It runs from gold along the top to orange along the bottom (`StreakPalette.glow`). It is dim while the
-  badge comes in and brightens as it lands.
+- **The glow** is `StageBackground` in `StreakCelebrationView.swift`: a band along the screen's rounded
+  edge, blurred, so the light is brightest right at the edge and fades out about 40 pt in. It runs from
+  gold along the top to orange along the bottom (`StreakPalette.glow`). It is stroked along
+  `ScreenEdgeReveal` (`Views/Shapes.swift`), the edge split into two halves that each run from the middle
+  of the bottom up one side to the middle of the top, trimmed to how far it has drawn in. Its timing and
+  its pulse, from a 28 pt band blurred by 14 pt at full strength to 16 pt, 10 pt and 70%, are
+  `CelebrationTimeline.glow(at:)`. With Reduce Motion it is there from the start and doesn't pulse.
 - The description counts down to the next milestone (3, 7, 14, 21, 30, 50, 75, 100, 150, 200, 250, 300,
   365, then every 100 days) and calls it out on the day it's reached.
 

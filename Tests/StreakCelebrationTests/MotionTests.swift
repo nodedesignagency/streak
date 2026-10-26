@@ -231,6 +231,60 @@ struct CelebrationTimelineTests {
     }
 }
 
+struct GlowTests {
+    func glow(at time: Double, idleMotion: Bool = true) -> GlowFrame {
+        CelebrationTimeline.glow(at: time, idleMotion: idleMotion)
+    }
+
+    @Test("Draws in from nothing while the badge rises, and is whole as it lands")
+    func drawsIn() {
+        #expect(glow(at: 0).reveal == 0)
+        #expect(glow(at: CelebrationTimeline.land).reveal == 1)
+        var previous = 0.0
+        for time in stride(from: 0.0, through: CelebrationTimeline.restingTime, by: 1.0 / 120) {
+            let reveal = glow(at: time).reveal
+            #expect(reveal >= previous && reveal <= 1)
+            previous = reveal
+        }
+        // Half-way round (up the sides) half-way through the rise.
+        #expect(abs(glow(at: CelebrationTimeline.land / 2).reveal - 0.5) < 1e-9)
+    }
+
+    @Test("Keeps its normal width while it draws in, then pulses: thin and faint, and back")
+    func pulses() {
+        for time in stride(from: 0.0, through: CelebrationTimeline.glowPulseStart, by: 0.01) {
+            #expect(glow(at: time).thinning == 0)
+        }
+        let start = CelebrationTimeline.glowPulseStart
+        let period = CelebrationTimeline.glowPulsePeriod
+        #expect(abs(glow(at: start + period / 2).thinning - 1) < 1e-9)
+        #expect(abs(glow(at: start + period).thinning) < 1e-9)
+        for time in stride(from: start, through: start + 4 * period, by: 0.01) {
+            let now = glow(at: time)
+            #expect((0...1).contains(now.thinning))
+            #expect(abs(now.thinning - glow(at: time + period).thinning) < 1e-9)
+        }
+    }
+
+    @Test("At its thinnest it is narrower, sharper and fainter than at its normal")
+    func thinnest() {
+        let normal = GlowFrame(reveal: 1, thinning: 0)
+        let thin = GlowFrame(reveal: 1, thinning: 1)
+        #expect(normal.bandWidth == 28 && normal.blurRadius == 14 && normal.strength == 1)
+        #expect(thin.bandWidth < normal.bandWidth)
+        #expect(thin.blurRadius < normal.blurRadius)
+        #expect(thin.strength < normal.strength && thin.strength >= 0.6)
+    }
+
+    @Test("With Reduce Motion it is whole and still")
+    func reduceMotion() {
+        for time in stride(from: CelebrationTimeline.restingTime, through: 30, by: 0.1) {
+            let still = glow(at: time, idleMotion: false)
+            #expect(still.reveal == 1 && still.thinning == 0)
+        }
+    }
+}
+
 struct TokenProjectionTests {
     let thickness = 16.0
 

@@ -32,3 +32,34 @@ struct BadgeShape: InsettableShape {
         return copy
     }
 }
+
+/// The screen's rounded edge, drawn in from the middle of the bottom, up both sides at once, to the middle
+/// of the top, as far as `progress` (0 nothing, 1 the whole edge).
+struct ScreenEdgeReveal: Shape {
+    var progress: Double
+    var cornerRadius: Double
+
+    func path(in rect: CGRect) -> Path {
+        let radius = min(cornerRadius, Double(rect.width) / 2, Double(rect.height) / 2)
+        // The right half, bottom to top; the left half is its mirror image.
+        var half = Path()
+        half.move(to: CGPoint(x: rect.midX, y: rect.maxY))
+        half.addArc(
+            tangent1End: CGPoint(x: rect.maxX, y: rect.maxY),
+            tangent2End: CGPoint(x: rect.maxX, y: rect.minY),
+            radius: radius
+        )
+        half.addArc(
+            tangent1End: CGPoint(x: rect.maxX, y: rect.minY),
+            tangent2End: CGPoint(x: rect.midX, y: rect.minY),
+            radius: radius
+        )
+        half.addLine(to: CGPoint(x: rect.midX, y: rect.minY))
+
+        let drawn = half.trimmedPath(from: 0, to: min(max(progress, 0), 1))
+        // One path for both halves, so where they meet they are stroked once, not twice.
+        var path = drawn
+        path.addPath(drawn, transform: CGAffineTransform(a: -1, b: 0, c: 0, d: 1, tx: 2 * rect.midX, ty: 0))
+        return path
+    }
+}
