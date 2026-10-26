@@ -8,10 +8,11 @@ struct CelebrationFrame: Equatable, Sendable {
     /// Points above the resting position.
     var tokenLift: Double
     var tokenScale: Double
-    /// How polished the coin looks: 0 tarnished, warming a little as it spins, flaring past 1 as it lands, then 1.
+    /// How polished the badge looks: 0 dull, warming a little as it spins, flaring past 1 as it lands, then 1.
     var ignition: Double
 
-    /// The token has turned its back since the spin began, so its front may now carry the new count.
+    /// The count engraved on the back of the badge has changed to the new one. Its back goes by twice in
+    /// the spin, showing the previous count the first time and the new count the second.
     var showsNewCount: Bool { tokenYaw >= CelebrationTimeline.swapAngle }
 }
 
@@ -19,11 +20,11 @@ struct CelebrationFrame: Equatable, Sendable {
 enum CelebrationTimeline {
     // MARK: Beats (seconds since the screen started playing)
 
-    /// The coin winds up, turning back a little.
+    /// The badge winds up, turning back a little.
     static let anticipate = 0.20
     /// It flicks into two full turns, rising as it goes.
     static let spin = 0.40
-    /// The front comes round carrying the new count.
+    /// The front comes round again, after the back has gone by with the new count on it.
     static let reveal = 1.00
     /// It settles facing the viewer and polishes up; the gold at the bottom of the screen warms up.
     static let land = 1.55
@@ -35,11 +36,11 @@ enum CelebrationTimeline {
     /// A moment after everything has settled; used for Reduce Motion and for skipping ahead.
     static let restingTime = 4.3
 
-    /// Yaw at which the count on the front changes. The token is edge-on here and its back comes next.
+    /// Yaw at which the count on the back changes. The token is edge-on here, and its back comes next.
     static let swapAngle = 450.0
     static let restingYaw = 720.0
 
-    /// Once settled, the coin turns another full circle every few seconds, like a trophy on a turntable.
+    /// Once settled, the badge turns another full circle every few seconds, like a trophy on a turntable.
     static let idleSpinStart = land + 4.0
     static let idleSpinInterval = 6.0
     static let idleSpinDuration = 1.4
@@ -69,10 +70,10 @@ enum CelebrationTimeline {
 
     /// - Parameters:
     ///   - time: Seconds since the screen started playing.
-    ///   - idleMotion: Whether the settled coin keeps swaying, floating and turning. Off for Reduce Motion.
+    ///   - idleMotion: Whether the settled badge keeps swaying, floating and turning. Off for Reduce Motion.
     static func frame(at time: Double, idleMotion: Bool = true) -> CelebrationFrame {
         let idleAmount = idleMotion ? idle.value(at: time) : 0
-        // A slow sway so the light keeps moving across the gold.
+        // A slow sway so the light keeps moving across the chrome and enamel.
         let sway = sin((time - land) * 2 * .pi * 0.16) * 14 * idleAmount
         let bob = sin(time * 2 * .pi * 0.35) * 3 * idleAmount
 
@@ -84,7 +85,7 @@ enum CelebrationTimeline {
         )
     }
 
-    /// Whole turns added since the coin settled, easing in and out of each one.
+    /// Whole turns added since the badge settled, easing in and out of each one.
     private static func idleSpin(at time: Double) -> Double {
         guard time >= idleSpinStart else { return 0 }
         let elapsed = time - idleSpinStart

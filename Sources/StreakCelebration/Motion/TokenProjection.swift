@@ -1,6 +1,6 @@
 import Foundation
 
-/// How a coin-like token spun about its vertical axis lands on screen, viewed head-on.
+/// How a flat token, such as the badge, spun about its vertical axis lands on screen, viewed head-on.
 ///
 /// Drawing it this way, rather than with stacked 3D layers, keeps the depth order trivially right: the edge
 /// is always underneath, and only the face turned towards the viewer is ever drawn.

@@ -2,9 +2,10 @@ import SwiftUI
 
 /// A full-screen celebration shown when the user extends their streak.
 ///
-/// A gold coin winds up and flicks into two full spins. The new count comes round on its rim, it polishes
-/// up as it lands and the gold at the bottom of the screen warms up; then the date, title and description
-/// arrive, and the share button. The coin keeps turning every few seconds, like a trophy on a turntable.
+/// The streak badge winds up and flicks into two full spins, its chrome back going by with the new count
+/// engraved on it. Its enamel flares as it lands and the gold at the bottom of the screen warms up; then the
+/// date, title and description arrive, and the share button. The badge keeps turning every few seconds,
+/// like a trophy on a turntable.
 ///
 ///     .fullScreenCover(isPresented: $showStreak) {
 ///         StreakCelebrationView(streak: 10) { showStreak = false }
@@ -31,8 +32,9 @@ public struct StreakCelebrationView: View {
 
     /// - Parameters:
     ///   - streak: The streak after today's activity.
-    ///   - previousStreak: What the coin shows before it spins. Defaults to `streak - 1`.
-    ///   - today: The day being celebrated, shown above the title and on the back of the coin.
+    ///   - previousStreak: The count on the back of the badge the first time it goes by in the spin, before
+    ///     the new count comes round. Defaults to `streak - 1`.
+    ///   - today: The day being celebrated, shown above the title and on the back of the badge.
     ///   - message: The paragraph under the title. Defaults to how far the next milestone is.
     ///   - onClose: Called when the user taps the close button.
     public init(
@@ -96,7 +98,7 @@ public struct StreakCelebrationView: View {
             .accessibilityElement(children: .combine)
             .accessibilityHidden(stage < .details)
 
-            // The coin and words sit high, as in the reference: more room below them than above.
+            // The badge and words sit high, as in the reference: more room below them than above.
             Spacer(minLength: 16)
             Spacer(minLength: 0)
 

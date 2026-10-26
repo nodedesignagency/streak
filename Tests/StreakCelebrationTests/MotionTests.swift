@@ -56,7 +56,7 @@ struct TrackTests {
 }
 
 struct CelebrationTimelineTests {
-    @Test("Opens facing front, dull, showing the previous count")
+    @Test("Opens facing front, dull, with the previous count on its back")
     func opensDormant() {
         let frame = CelebrationTimeline.frame(at: 0)
         #expect(frame.tokenYaw == 0)
@@ -69,7 +69,7 @@ struct CelebrationTimelineTests {
         #expect(CelebrationTimeline.frame(at: CelebrationTimeline.spin).tokenYaw < 0)
     }
 
-    @Test("The count only changes while the front is turned away")
+    @Test("The count only changes edge-on, when neither face can be read")
     func swapsOutOfSight() {
         var sawBackBeforeReveal = false
         var previous = CelebrationTimeline.frame(at: 0)
@@ -88,11 +88,30 @@ struct CelebrationTimelineTests {
         #expect(sawBackBeforeReveal)
     }
 
-    @Test("At the reveal the front is back in view carrying the new count")
+    @Test("At the reveal the front is back in view, the new count already on the back")
     func reveal() {
         let frame = CelebrationTimeline.frame(at: CelebrationTimeline.reveal)
         #expect(frame.showsNewCount)
         #expect(TokenProjection(yaw: frame.tokenYaw, thickness: HeroMetrics.tokenThickness).showsFront)
+    }
+
+    @Test("The back goes by twice in the spin: first with the previous count, then the new one")
+    func backGoesByTwice() {
+        var passes: [Bool] = []
+        var wasShowingBack = false
+        for time in stride(from: 0.0, through: CelebrationTimeline.reveal, by: 1.0 / 240) {
+            let frame = CelebrationTimeline.frame(at: time)
+            let showingBack = !TokenProjection(yaw: frame.tokenYaw, thickness: HeroMetrics.tokenThickness).showsFront
+            if showingBack && !wasShowingBack {
+                passes.append(frame.showsNewCount)
+            }
+            if showingBack {
+                // The count never changes while the back is in view.
+                #expect(frame.showsNewCount == passes.last)
+            }
+            wasShowingBack = showingBack
+        }
+        #expect(passes == [false, true])
     }
 
     @Test("Stays dull while spinning, and polishes up as it lands")
@@ -195,66 +214,128 @@ struct TokenProjectionTests {
     }
 }
 
-struct ArcLayoutTests {
-    @Test("Lettering is centred on twelve o'clock across the top", arguments: ["10 DAY STREAK", "AXA", "W"])
-    func centredOnTop(text: String) throws {
-        let positions = ArcLayout.positions(for: text, placement: .top, degreesPerCharacter: 9)
-        let first = try #require(positions.first)
-        let last = try #require(positions.last)
-        let firstWidth = ArcLayout.relativeWidth(try #require(text.first)) * 9 / 2
-        let lastWidth = ArcLayout.relativeWidth(try #require(text.last)) * 9 / 2
-        // The outer edges of the first and last letters sit symmetrically about the top.
-        #expect(abs((first.angle - firstWidth + 90) + (last.angle + lastWidth + 90)) < 1e-9)
-    }
-
-    @Test("Top lettering runs clockwise; bottom lettering runs the other way so both read left to right")
-    func readsLeftToRight() {
-        let top = ArcLayout.positions(for: "STREAK", placement: .top, degreesPerCharacter: 9)
-        let bottom = ArcLayout.positions(for: "STREAK", placement: .bottom, degreesPerCharacter: 9)
-        #expect(zip(top, top.dropFirst()).allSatisfy { $0.angle < $1.angle })
-        #expect(zip(bottom, bottom.dropFirst()).allSatisfy { $0.angle > $1.angle })
-    }
-
-    @Test("Letters stand square to the circle")
-    func upright() {
-        for position in ArcLayout.positions(for: "10 DAY STREAK", placement: .top, degreesPerCharacter: 9) {
-            #expect(abs(position.rotation - (position.angle + 90)) < 1e-9)
-        }
-        for position in ArcLayout.positions(for: "• • •", placement: .bottom, degreesPerCharacter: 9) {
-            #expect(abs(position.rotation - (position.angle - 90)) < 1e-9)
-        }
-    }
-
-    @Test("Narrow characters take less of the arc than wide ones")
-    func widths() {
-        #expect(ArcLayout.relativeWidth("I") < ArcLayout.relativeWidth("A"))
-        #expect(ArcLayout.relativeWidth("W") > ArcLayout.relativeWidth("A"))
-    }
-}
-
-struct CoinLightTests {
-    @Test("Face-on, the gold sits between champagne and peach")
+struct TokenLightTests {
+    @Test("Face-on, the chrome sits between its glint and its shade")
     func faceOn() {
-        let light = CoinLight(yaw: 0)
-        #expect(light.champagne > 0.3 && light.champagne < 0.8)
-        #expect(light.peach > 0.1 && light.peach < 0.5)
+        let light = TokenLight(yaw: 0)
+        #expect(light.glint > 0.3 && light.glint < 0.8)
+        #expect(light.shade > 0.1 && light.shade < 0.5)
     }
 
-    @Test("Swaying one way goes champagne, the other way goes peach")
+    @Test("Swaying one way glints, the other way falls into shade")
     func sway() {
-        let towards = CoinLight(yaw: CelebrationTimeline.restingYaw + 14)
-        let away = CoinLight(yaw: CelebrationTimeline.restingYaw - 14)
-        #expect(towards.champagne > away.champagne)
-        #expect(away.peach > towards.peach)
+        let towards = TokenLight(yaw: CelebrationTimeline.restingYaw + 14)
+        let away = TokenLight(yaw: CelebrationTimeline.restingYaw - 14)
+        #expect(towards.glint > away.glint)
+        #expect(away.shade > towards.shade)
         #expect(towards.facing > away.facing)
     }
 
     @Test("Stays within its ranges all the way round", arguments: stride(from: -180.0, through: 900, by: 7.5).map { $0 })
     func ranges(yaw: Double) {
-        let light = CoinLight(yaw: yaw)
+        let light = TokenLight(yaw: yaw)
         #expect((0...1).contains(light.facing))
-        #expect((0...0.8).contains(light.champagne))
-        #expect((0...0.5).contains(light.peach))
+        #expect((0...0.8).contains(light.glint))
+        #expect((0...0.5).contains(light.shade))
+    }
+}
+
+struct BadgeFinishTests {
+    func finish(at time: Double, idleMotion: Bool = true) -> BadgeFinish {
+        let frame = CelebrationTimeline.frame(at: time, idleMotion: idleMotion)
+        return BadgeFinish(ignition: frame.ignition, light: TokenLight(yaw: frame.tokenYaw))
+    }
+
+    @Test("Settled face-on, the badge shows its artwork as drawn")
+    func settled() {
+        let settled = finish(at: CelebrationTimeline.restingTime, idleMotion: false)
+        #expect(settled.saturation == 1)
+        #expect(abs(settled.brightness) < 0.005)
+    }
+
+    @Test("Muted while it spins, and flaring as it lands")
+    func mutedThenFlaring() {
+        for time in stride(from: 0, to: CelebrationTimeline.land - 0.05, by: 0.01) {
+            #expect(finish(at: time).saturation < 0.6)
+            #expect(finish(at: time).brightness < -0.09)
+        }
+        let landing = stride(from: CelebrationTimeline.land, through: CelebrationTimeline.land + 0.3, by: 0.01)
+        #expect((landing.map { finish(at: $0).brightness }.max() ?? 0) > 0.08)
+    }
+
+    @Test("Brightens a touch swaying towards the light and darkens swaying away")
+    func sway() {
+        let towards = BadgeFinish(ignition: 1, light: TokenLight(yaw: CelebrationTimeline.restingYaw + 14))
+        let away = BadgeFinish(ignition: 1, light: TokenLight(yaw: CelebrationTimeline.restingYaw - 14))
+        #expect(towards.brightness > 0.02)
+        #expect(away.brightness < -0.02)
+        #expect(max(abs(towards.brightness), abs(away.brightness)) < 0.06)
+    }
+}
+
+struct BadgeOutlineTests {
+    let rect = CGRect(x: 10, y: 20, width: HeroMetrics.tokenWidth, height: HeroMetrics.tokenHeight)
+    var radius: Double { BadgeOutline.cornerRadius * HeroMetrics.tokenWidth }
+
+    func bounds(_ points: [CGPoint]) -> (minX: Double, maxX: Double, minY: Double, maxY: Double) {
+        (
+            points.map { Double($0.x) }.min() ?? 0, points.map { Double($0.x) }.max() ?? 0,
+            points.map { Double($0.y) }.min() ?? 0, points.map { Double($0.y) }.max() ?? 0
+        )
+    }
+
+    @Test("Face-on it fills its rect: flat sides left and right, rounded points top and bottom")
+    func faceOn() {
+        let points = BadgeOutline.points(in: rect, radius: radius)
+        let box = bounds(points)
+        #expect(abs(box.minX - Double(rect.minX)) < 1e-9 && abs(box.maxX - Double(rect.maxX)) < 1e-9)
+        #expect(abs(box.minY - Double(rect.minY)) < 1e-9 && abs(box.maxY - Double(rect.maxY)) < 1e-9)
+        let top = points.filter { abs(Double($0.y) - Double(rect.minY)) < 1e-9 }
+        #expect(top.allSatisfy { abs(Double($0.x) - Double(rect.midX)) < 1e-9 })
+        // The flat sides are vertical: both ends of the right one sit on the rect's right edge.
+        #expect(points.filter { abs(Double($0.x) - Double(rect.maxX)) < 1e-9 }.count >= 2)
+    }
+
+    @Test("Mid-spin each half is squashed and pushed out, opening the points into flats")
+    func midSpin() {
+        let squash = 0.4
+        let extrude = 6.0
+        let points = BadgeOutline.points(in: rect, radius: radius, squash: squash, extrude: extrude)
+        let box = bounds(points)
+        #expect(abs((box.maxX - box.minX) - (Double(rect.width) * squash + 2 * extrude)) < 1e-9)
+        let top = points.filter { abs(Double($0.y) - Double(rect.minY)) < 1e-9 }.map { Double($0.x) }
+        #expect(abs((top.min() ?? 0) - (Double(rect.midX) - extrude)) < 1e-9)
+        #expect(abs((top.max() ?? 0) - (Double(rect.midX) + extrude)) < 1e-9)
+    }
+
+    @Test("The slanted sides run at 30 degrees, like the artwork's")
+    func slant() {
+        let steps = 8
+        let points = BadgeOutline.points(in: rect, radius: radius, stepsPerCorner: steps)
+        // The end of the top corner's right half, then the start of the top-right corner.
+        let from = points[steps / 2]
+        let to = points[steps / 2 + 1]
+        let angle = atan2(Double(to.y - from.y), Double(to.x - from.x)) * 180 / .pi
+        #expect(abs(angle - 30) < 1e-9)
+    }
+
+    @Test("An inset outline runs parallel to the edge")
+    func inset() {
+        let inset = 12.0
+        let outer = BadgeOutline.points(in: rect, radius: radius, stepsPerCorner: 32)
+        let inner = BadgeOutline.points(in: rect.insetBy(dx: inset, dy: inset), radius: radius - inset)
+        func distance(_ point: CGPoint) -> Double {
+            zip(outer, outer.dropFirst() + [outer[0]]).map { start, end in
+                let dx = Double(end.x - start.x), dy = Double(end.y - start.y)
+                let length = max(dx * dx + dy * dy, 1e-12)
+                let t = min(max((Double(point.x - start.x) * dx + Double(point.y - start.y) * dy) / length, 0), 1)
+                let x = Double(start.x) + t * dx - Double(point.x), y = Double(start.y) + t * dy - Double(point.y)
+                return (x * x + y * y).squareRoot()
+            }.min() ?? 0
+        }
+        for point in inner {
+            #expect(abs(distance(point) - inset) < 0.05)
+        }
     }
 }
 

@@ -36,10 +36,10 @@ struct StreakCopyTests {
         #expect(StreakCopy.title(for: 0) == "1 Day Streak")
     }
 
-    @Test("The description says what the coin is for and points at the next milestone")
+    @Test("The description says what the badge is for and points at the next milestone")
     func description() {
         #expect(StreakCopy.description(for: 1) == "You started a streak by showing up today. 2 more days to your 3-day milestone.")
-        #expect(StreakCopy.description(for: 10) == "You earned this coin by showing up 10 days in a row. 4 more days to your 14-day milestone.")
+        #expect(StreakCopy.description(for: 10) == "You earned this badge by showing up 10 days in a row. 4 more days to your 14-day milestone.")
         #expect(StreakCopy.description(for: 13).hasSuffix("1 more day to your 14-day milestone."))
         #expect(StreakCopy.description(for: 7).hasSuffix("That's the 7-day milestone. Next stop: 14 days."))
     }

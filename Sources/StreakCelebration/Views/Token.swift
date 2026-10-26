@@ -1,31 +1,32 @@
 import SwiftUI
 
-/// A thick satin-gold coin with a streak flame in line relief at its centre and the count lettered round
-/// its rim, drawn mid-spin from a `CelebrationFrame`. It turns from tarnished to polished as it lands.
+/// The streak badge mid-spin, drawn from a `CelebrationFrame`: the enamel-and-chrome artwork on the front,
+/// a chrome edge as deep as the badge is thick, and a chrome back engraved with the count and the date.
+/// The enamel is muted while it spins, then flares and settles to its own colours as it lands.
 struct Token: View {
     var frame: CelebrationFrame
-    /// The count currently on the front: the previous streak until the coin has turned its back.
+    /// The count engraved on the back: the previous streak the first time the back goes by, then the new one.
     var count: Int
-    var streak: Int
-    /// When the streak was extended, lettered on the back.
+    /// When the streak was extended, engraved on the back.
     var earnedOn: String
     var palette: StreakPalette
 
-    private let diameter = HeroMetrics.tokenWidth
+    private let width = HeroMetrics.tokenWidth
+    private let height = HeroMetrics.tokenHeight
 
     var body: some View {
         let projection = TokenProjection(yaw: frame.tokenYaw, thickness: HeroMetrics.tokenThickness)
         ZStack {
-            // The edge: the outline swept through the coin's thickness, catching a pale highlight as it
+            // The edge: the outline swept through the badge's thickness, catching a pale highlight as it
             // turns towards us.
-            TokenShape(squash: projection.faceScale, extrude: projection.extrude)
+            BadgeShape(squash: projection.faceScale, extrude: projection.extrude)
                 .fill(LinearGradient(
                     colors: palette.edge(ignition: frame.ignition, light: light),
                     startPoint: .leading,
                     endPoint: .trailing
                 ))
                 .overlay {
-                    TokenShape(squash: projection.faceScale, extrude: projection.extrude)
+                    BadgeShape(squash: projection.faceScale, extrude: projection.extrude)
                         .fill(palette.reliefLight.opacity(0.18 * projection.edgeExposure))
                 }
 
@@ -39,145 +40,133 @@ struct Token: View {
             .scaleEffect(x: max(projection.faceScale, 0.001), y: 1)
             .offset(x: projection.faceOffset)
         }
-        .frame(width: diameter, height: diameter)
+        .frame(width: width, height: height)
         .scaleEffect(frame.tokenScale)
         .offset(y: -frame.tokenLift)
     }
 
-    private var light: CoinLight {
-        CoinLight(yaw: frame.tokenYaw)
-    }
-
-    private var colors: [Color] {
-        palette.face(ignition: frame.ignition, light: light)
+    private var light: TokenLight {
+        TokenLight(yaw: frame.tokenYaw)
     }
 
     // MARK: Faces
 
-    /// Satin gold with a soft bevel at the edge, a fine raised ring just inside it, and a hot spot and
-    /// sheen that drift across as the coin turns.
+    /// Either face, with a hot spot and a sheen that drift across it as the badge turns.
     private func face<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         let drift = -sin((frame.tokenYaw - 15) * .pi / 180)
         return ZStack {
-            Circle()
-                .fill(LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing))
-            Circle()
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [palette.reliefLight.opacity(0.7), palette.reliefLight.opacity(0), palette.reliefShadow.opacity(0.45)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 2.5
-                )
-            Circle()
-                .strokeBorder(colors[0], lineWidth: 1.6)
-                .padding(diameter * 0.045)
-                .modifier(Embossed(palette: palette))
-
             content()
 
             Circle()
                 .fill(RadialGradient(
-                    colors: [Color.white.opacity(0.3 * light.facing), Color.white.opacity(0)],
+                    colors: [Color.white.opacity(0.22 * light.facing), Color.white.opacity(0)],
                     center: .center,
                     startRadius: 0,
-                    endRadius: diameter * 0.4
+                    endRadius: width * 0.4
                 ))
-                .frame(width: diameter * 0.8, height: diameter * 0.8)
-                .offset(x: drift * diameter * 0.3, y: -diameter * 0.16)
+                .frame(width: width * 0.8, height: width * 0.8)
+                .offset(x: drift * width * 0.3, y: -height * 0.16)
                 .blendMode(.plusLighter)
             LinearGradient(
                 colors: [.white.opacity(0), .white.opacity(0.12), .white.opacity(0)],
                 startPoint: .leading,
                 endPoint: .trailing
             )
-            .frame(width: diameter * 0.45, height: diameter * 1.4)
+            .frame(width: width * 0.45, height: height * 1.4)
             .rotationEffect(.degrees(18))
-            .offset(x: drift * diameter * 1.1)
+            .offset(x: drift * width * 1.1)
             .blendMode(.plusLighter)
         }
-        .frame(width: diameter, height: diameter)
-        .clipShape(Circle())
+        .frame(width: width, height: height)
+        .clipShape(BadgeShape())
     }
 
+    /// The artwork, its enamel muted until the badge lands.
     private var front: some View {
-        ZStack {
-            innerRing
-            flame
-                .offset(y: diameter * 0.015)
-            ArcText(
-                text: "\(count) Day streak".uppercased(),
-                radius: diameter * 0.37,
-                placement: .top,
-                font: .system(size: 14, weight: .semibold).width(.expanded),
-                degreesPerCharacter: 15.5
-            )
-        }
-        .foregroundStyle(colors[0])
-        .modifier(Embossed(palette: palette))
-        .frame(width: diameter, height: diameter)
+        let finish = BadgeFinish(ignition: frame.ignition, light: light)
+        return Image("StreakBadge", bundle: .module)
+            .resizable()
+            .interpolation(.high)
+            .saturation(finish.saturation)
+            .brightness(finish.brightness)
+            .frame(width: width, height: height)
     }
 
+    /// A polished chrome frame, like the one on the front, round a sunken plate engraved with the count.
     private var back: some View {
-        ZStack {
-            innerRing
-            VStack(spacing: 4) {
-                Text("STREAK")
-                    .font(.system(size: 9, weight: .semibold).width(.expanded))
-                    .tracking(2)
-                Text("\(streak)")
-                    .font(.system(size: 30, weight: .semibold).width(.expanded))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .frame(width: diameter * 0.5)
-                Text("DAYS")
-                    .font(.system(size: 9, weight: .semibold).width(.expanded))
-                    .tracking(2)
-            }
-            ArcText(
-                text: earnedOn,
-                radius: diameter * 0.37,
-                placement: .bottom,
-                font: .system(size: 11, weight: .semibold).width(.expanded),
-                degreesPerCharacter: 12
-            )
-        }
-        .foregroundStyle(colors[0])
-        .modifier(Embossed(palette: palette))
-        .frame(width: diameter, height: diameter)
-    }
-
-    /// The fine ring that separates the lettering from the centre.
-    private var innerRing: some View {
-        Circle()
-            .strokeBorder(colors[0], lineWidth: 1.6)
-            .frame(width: diameter * 0.58, height: diameter * 0.58)
-    }
-
-    /// The streak flame drawn as a raised line, with its teardrop inside, like a logo struck on a coin.
-    private var flame: some View {
-        let width = diameter * 0.3
-        let height = width * 1.1
+        let chrome = palette.plate(ignition: frame.ignition, light: light)
+        let frameWidth = width * 0.075
         return ZStack {
-            FlameShape()
-                .stroke(colors[0], style: StrokeStyle(lineWidth: 3.2, lineJoin: .round))
-            DropShape()
-                .stroke(colors[0], style: StrokeStyle(lineWidth: 2.6, lineJoin: .round))
-                .frame(width: width * 0.38, height: height * 0.44)
-                .offset(y: height * 0.2)
+            BadgeShape()
+                .fill(LinearGradient(colors: chrome, startPoint: .topLeading, endPoint: .bottomTrailing))
+            // The frame's bevel: catching the light on the top left, in shadow on the bottom right.
+            BadgeShape()
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [palette.reliefLight.opacity(0.8), palette.reliefLight.opacity(0), palette.reliefShadow.opacity(0.5)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 2.5
+                )
+            // The plate, a step down from the frame: its shadow falls along the top left.
+            BadgeShape()
+                .inset(by: frameWidth)
+                .fill(LinearGradient(
+                    colors: [chrome[2], chrome[1], chrome[1]],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+            BadgeShape()
+                .inset(by: frameWidth)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [palette.reliefShadow.opacity(0.6), palette.reliefLight.opacity(0.7)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
+                )
+
+            engraving
+                .foregroundStyle(chrome[2])
+                .modifier(Engraved(palette: palette))
         }
         .frame(width: width, height: height)
     }
+
+    private var engraving: some View {
+        ZStack {
+            VStack(spacing: 2) {
+                Text("STREAK")
+                    .font(.system(size: 10, weight: .semibold).width(.expanded))
+                    .tracking(2)
+                Text("\(count)")
+                    .font(.system(size: 46, weight: .semibold).width(.expanded))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .frame(maxWidth: width * 0.6)
+                Text(count == 1 ? "DAY" : "DAYS")
+                    .font(.system(size: 10, weight: .semibold).width(.expanded))
+                    .tracking(2)
+            }
+            .offset(y: -height * 0.02)
+            Text(earnedOn)
+                .font(.system(size: 9, weight: .semibold).width(.expanded))
+                .tracking(1)
+                .offset(y: height * 0.29)
+        }
+    }
 }
 
-/// Raised relief: a catch-light on the top-left edge and a soft shadow falling bottom-right.
-private struct Embossed: ViewModifier {
+/// Cut into the metal: a shadow along the top left of each stroke and a catch-light along the bottom right.
+private struct Engraved: ViewModifier {
     var palette: StreakPalette
 
     func body(content: Content) -> some View {
         content
-            .shadow(color: palette.reliefLight.opacity(0.85), radius: 0, x: -0.8, y: -0.8)
-            .shadow(color: palette.reliefShadow.opacity(0.7), radius: 0.6, x: 1, y: 1.2)
+            .shadow(color: palette.reliefShadow.opacity(0.55), radius: 0, x: -0.6, y: -0.6)
+            .shadow(color: palette.reliefLight.opacity(0.8), radius: 0, x: 0.8, y: 0.8)
     }
 }

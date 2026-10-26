@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The coin spinning in, landing and then turning on its own every few seconds.
+/// The badge spinning in, landing and then turning on its own every few seconds.
 struct TokenHero: View {
     var clock: CelebrationClock
     var previousStreak: Int
@@ -15,7 +15,6 @@ struct TokenHero: View {
             Token(
                 frame: frame,
                 count: frame.showsNewCount ? streak : previousStreak,
-                streak: streak,
                 earnedOn: earnedOn,
                 palette: palette
             )
