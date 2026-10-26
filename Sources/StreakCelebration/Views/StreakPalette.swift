@@ -9,6 +9,8 @@ struct StreakPalette {
     var tertiaryInk: Color
     /// The glow round the edges of the screen, top to bottom: gold, then orange.
     var glow: [Color]
+    /// The hyperspace streaks behind the badge: orange, gold and warm white (`WarpField.Streak.colour`).
+    var warp: [Color]
     /// The share button: a white pill with dark lettering.
     var button: Color
     var buttonInk: Color
@@ -29,6 +31,7 @@ struct StreakPalette {
         secondaryInk: Color(hex: 0xFFFFFF).opacity(0.72),
         tertiaryInk: Color(hex: 0xFFFFFF).opacity(0.45),
         glow: [Color(hex: 0xFFC63F), Color(hex: 0xFF7A1A)],
+        warp: [Color(hex: 0xFF8A2A), Color(hex: 0xFFC63F), Color(hex: 0xFFF3DC)],
         button: Color(hex: 0xFFFFFF),
         buttonInk: Color(hex: 0x131313),
         closeButton: Color(hex: 0x2B2B2B),

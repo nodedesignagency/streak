@@ -285,6 +285,71 @@ struct GlowTests {
     }
 }
 
+struct WarpFieldTests {
+    let reach = 560.0
+
+    @Test("Plays the same way every time")
+    func deterministic() {
+        #expect(WarpField.streaks(at: 1.234, reach: reach) == WarpField.streaks(at: 1.234, reach: reach))
+        #expect(WarpField.streaks(at: 0, reach: reach).count == WarpField.count)
+    }
+
+    @Test("Every streak points straight out from the centre, its bright head beyond its tail")
+    func radial() {
+        for time in stride(from: 0.0, through: 6, by: 0.37) {
+            for streak in WarpField.streaks(at: time, reach: reach) {
+                let tail = (Double(streak.tail.x) * Double(streak.tail.x) + Double(streak.tail.y) * Double(streak.tail.y)).squareRoot()
+                let head = (Double(streak.head.x) * Double(streak.head.x) + Double(streak.head.y) * Double(streak.head.y)).squareRoot()
+                #expect(head >= tail)
+                // Same direction: the cross product of the two ends is zero.
+                let cross = Double(streak.tail.x) * Double(streak.head.y) - Double(streak.tail.y) * Double(streak.head.x)
+                #expect(abs(cross) < 1e-6 * max(head * head, 1))
+                // Starts tucked in behind the badge, never further out than past the corners.
+                #expect(tail >= 0.85 * WarpField.startFraction * reach - 1e-9)
+                #expect(head <= 1.15 * WarpField.endFraction * reach + 1e-9)
+                #expect((0...1).contains(streak.opacity) && streak.width > 0)
+                #expect((0...2).contains(streak.colour))
+            }
+        }
+    }
+
+    @Test("Streaks speed up and stretch as they come, and never pop in or out")
+    func perspective() {
+        let step = 1.0 / 240
+        var previous = WarpField.streaks(at: 0, reach: reach)
+        for time in stride(from: step, through: 4, by: step) {
+            let field = WarpField.streaks(at: time, reach: reach)
+            for (before, now) in zip(previous, field) {
+                let wasOut = Double(before.head.x).magnitude + Double(before.head.y).magnitude
+                let isOut = Double(now.head.x).magnitude + Double(now.head.y).magnitude
+                if isOut < wasOut {
+                    // It has started again from the centre: both moments are all but invisible.
+                    #expect(before.opacity < 0.05 && now.opacity < 0.05)
+                } else {
+                    #expect(abs(now.opacity - before.opacity) < 0.1)
+                }
+            }
+            previous = field
+        }
+    }
+
+    @Test("Fades in as the screen opens")
+    func fadesIn() {
+        #expect(WarpField.visibility(at: 0) == 0)
+        #expect(WarpField.visibility(at: WarpField.fadeIn) == 1)
+        #expect(WarpField.visibility(at: 10) == 1)
+    }
+
+    @Test("Its pseudo-random numbers are spread across 0..<1")
+    func randomness() {
+        let values = (0..<2000).map { WarpField.random($0, 7) }
+        #expect(values.allSatisfy { (0..<1).contains($0) })
+        let mean = values.reduce(0, +) / Double(values.count)
+        #expect(abs(mean - 0.5) < 0.03)
+        #expect(Set(values).count == values.count)
+    }
+}
+
 struct TokenProjectionTests {
     let thickness = 16.0
 

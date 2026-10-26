@@ -5,8 +5,9 @@ import SwiftUI
 /// The streak badge rises from below the screen at one and a half times its size, spinning in fast and
 /// winding down, and shrinks back to its own size as it settles at its place facing you, in one continuous
 /// movement, while a gold-and-orange glow draws in round the edges of the screen, from the bottom up both
-/// sides to the top, and then pulses. Then the date, title and description arrive, and the share button.
-/// After that the badge turns a full circle every few seconds, like a trophy on a turntable.
+/// sides to the top, and then pulses. Behind it all, streaks of light rush out from the badge as if it were
+/// jumping to light speed. Then the date, title and description arrive, and the share button. After that the
+/// badge turns a full circle every few seconds, like a trophy on a turntable.
 ///
 ///     .fullScreenCover(isPresented: $showStreak) {
 ///         StreakCelebrationView(streak: 10) { showStreak = false }
@@ -63,6 +64,8 @@ public struct StreakCelebrationView: View {
             Spacer(minLength: 8)
 
             TokenHero(clock: clock, palette: palette)
+                // The hyperspace streaks in the background rush out from here.
+                .anchorPreference(key: HeroBoundsKey.self, value: .bounds) { $0 }
 
             VStack(spacing: 10) {
                 Text(dateLine)
@@ -99,9 +102,16 @@ public struct StreakCelebrationView: View {
         .padding(.horizontal, 20)
         .padding(.bottom, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            StageBackground(palette: palette, clock: clock)
-                .ignoresSafeArea()
+        .backgroundPreferenceValue(HeroBoundsKey.self) { hero in
+            GeometryReader { proxy in
+                let bounds = hero.map { proxy[$0] }
+                StageBackground(
+                    palette: palette,
+                    clock: clock,
+                    warpCentre: bounds.map { CGPoint(x: $0.midX, y: $0.midY) }
+                )
+            }
+            .ignoresSafeArea()
         }
         .preferredColorScheme(.dark)
         .contentShape(Rectangle())
@@ -201,10 +211,15 @@ public struct StreakCelebrationView: View {
 private struct StageBackground: View {
     var palette: StreakPalette
     var clock: CelebrationClock
+    /// The middle of the badge, in this view's coordinates: where the hyperspace streaks rush out from.
+    var warpCentre: CGPoint?
 
     var body: some View {
         ZStack {
             palette.background
+            if let warpCentre, !clock.reduceMotion {
+                WarpBackdrop(palette: palette, clock: clock, centre: warpCentre)
+            }
             TimelineView(.animation(paused: clock.reduceMotion)) { context in
                 let glow = CelebrationTimeline.glow(at: clock.elapsed(at: context.date), idleMotion: !clock.reduceMotion)
                 // A band centred on the screen's edge and blurred, so only its soft inner half shows:
@@ -222,6 +237,67 @@ private struct StageBackground: View {
                     .opacity(glow.strength)
             }
         }
+    }
+}
+
+/// Hyperspace streaks rushing out from the badge (`Motion/WarpField.swift`), each fading in from its tail to
+/// a bright head, with a soft bloom round it, added onto the charcoal so they glow.
+private struct WarpBackdrop: View {
+    var palette: StreakPalette
+    var clock: CelebrationClock
+    var centre: CGPoint
+
+    var body: some View {
+        // Sixty frames a second is plenty for the streaks, and halves the drawing on ProMotion screens.
+        TimelineView(.animation(minimumInterval: 1.0 / 60)) { context in
+            let time = clock.elapsed(at: context.date)
+            let visibility = WarpField.visibility(at: time)
+            Canvas { canvas, size in
+                // Far enough to reach every corner of the screen.
+                let reach = [CGPoint.zero, CGPoint(x: size.width, y: 0), CGPoint(x: 0, y: size.height), CGPoint(x: size.width, y: size.height)]
+                    .map { hypot(Double($0.x - centre.x), Double($0.y - centre.y)) }
+                    .max() ?? 0
+                canvas.blendMode = .plusLighter
+                for streak in WarpField.streaks(at: time, reach: reach) where streak.opacity > 0.01 {
+                    let tail = CGPoint(x: centre.x + streak.tail.x, y: centre.y + streak.tail.y)
+                    let head = CGPoint(x: centre.x + streak.head.x, y: centre.y + streak.head.y)
+                    var line = Path()
+                    line.move(to: tail)
+                    line.addLine(to: head)
+                    let colour = palette.warp[streak.colour]
+                    let strength = streak.opacity * visibility
+                    // The bloom: wide and faint.
+                    canvas.stroke(
+                        line,
+                        with: .linearGradient(
+                            Gradient(colors: [colour.opacity(0), colour.opacity(0.22 * strength)]),
+                            startPoint: tail,
+                            endPoint: head
+                        ),
+                        style: StrokeStyle(lineWidth: streak.width * 4, lineCap: .round)
+                    )
+                    // The core: thin and bright.
+                    canvas.stroke(
+                        line,
+                        with: .linearGradient(
+                            Gradient(colors: [colour.opacity(0), colour.opacity(0.85 * strength)]),
+                            startPoint: tail,
+                            endPoint: head
+                        ),
+                        style: StrokeStyle(lineWidth: streak.width, lineCap: .round)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/// Where the badge is on screen, passed up to the background so the hyperspace streaks can centre on it.
+private struct HeroBoundsKey: PreferenceKey {
+    static var defaultValue: Anchor<CGRect>? { nil }
+
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
+        value = value ?? nextValue()
     }
 }
 
