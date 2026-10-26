@@ -32,8 +32,6 @@ struct Token: View {
                 .offset(x: projection.faceOffset)
         }
         .frame(width: width, height: height)
-        .scaleEffect(frame.tokenScale)
-        .offset(y: -frame.tokenLift)
     }
 
     private var light: TokenLight {

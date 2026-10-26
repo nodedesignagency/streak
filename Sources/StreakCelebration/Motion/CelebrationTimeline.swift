@@ -2,80 +2,62 @@ import Foundation
 
 /// Everything the hero needs to draw one frame of the celebration.
 struct CelebrationFrame: Equatable, Sendable {
-    /// Degrees around the vertical axis. 0 faces the viewer; the spin ends two full turns later, and it
-    /// keeps turning a full circle every few seconds after that.
+    /// Degrees around the vertical axis. 0 faces the viewer. The badge opens in three-quarter view, turns the
+    /// rest of the way round to face the viewer, and turns a full circle every few seconds after that. The
+    /// angle falls as it turns: the badge's right side comes towards the viewer.
     var tokenYaw: Double
-    /// Points above the resting position.
-    var tokenLift: Double
-    var tokenScale: Double
 }
 
 /// The whole celebration as pure functions of elapsed time, so it can be scrubbed, replayed, skipped and tested.
+///
+/// The badge's motion follows the trophy-screen recording: it holds still in three-quarter view, then makes
+/// one slow, smooth turn, gathering speed until its back has gone by and easing off as it comes round to
+/// face the viewer. It never lifts, grows or bobs; only the turn moves.
 enum CelebrationTimeline {
     // MARK: Beats (seconds since the screen started playing)
 
-    /// The badge winds up, turning back a little.
-    static let anticipate = 0.20
-    /// It flicks into two full turns, rising as it goes.
-    static let spin = 0.40
-    /// It settles facing the viewer; the gold at the bottom of the screen warms up.
-    static let land = 1.55
-    /// The date, title and description arrive.
-    static let details = 1.85
+    /// It starts to turn.
+    static let spin = 0.50
+    /// The date, title and description arrive while it turns.
+    static let details = 0.90
     /// The share button arrives.
-    static let actions = 2.60
+    static let actions = 1.50
+    /// It comes round to face the viewer and comes to rest; the gold at the bottom of the screen warms up.
+    static let land = 4.10
 
     /// A moment after everything has settled; used for Reduce Motion and for skipping ahead.
-    static let restingTime = 4.3
+    static let restingTime = 4.6
 
-    static let restingYaw = 720.0
+    /// Where it starts: three-quarters on, its chrome edge showing on the right.
+    static let startYaw = -37.0
+    /// Facing the viewer, after turning the rest of the way round from three-quarter view.
+    static let restingYaw = -360.0
 
-    /// Once settled, the badge turns another full circle every few seconds, like a trophy on a turntable.
-    static let idleSpinStart = land + 4.0
+    /// Once settled, it turns another full circle every few seconds, the same slow way.
+    static let idleSpinStart = land + 2.4
     static let idleSpinInterval = 6.0
-    static let idleSpinDuration = 1.4
+    static let idleSpinDuration = land - spin
 
     // MARK: Tracks
 
-    private static let yaw = Track(0)
-        .to(-18, at: anticipate, over: spin - anticipate, .easeOut)
-        .to(restingYaw + 8, at: spin, over: land - spin, .easeOut)
-        .to(restingYaw, at: land, over: 0.5, .spring(damping: 0.5))
-    private static let lift = Track(0)
-        .to(-4, at: anticipate, over: spin - anticipate, .easeOut)
-        .to(14, at: spin, over: 0.6, .easeOut)
-        .to(0, at: 1.40, over: 0.6, .spring(damping: 0.55))
-    private static let scale = Track(1)
-        .to(0.96, at: anticipate, over: spin - anticipate, .easeOut)
-        .to(1.06, at: spin, over: 0.6, .easeOut)
-        .to(1, at: 1.40, over: 0.6, .spring(damping: 0.5))
-    private static let idle = Track(0)
-        .to(1, at: land + 0.5, over: 1.0, .easeInOut)
+    private static let yaw = Track(startYaw)
+        .to(restingYaw, at: spin, over: land - spin, .easeInOutQuad)
 
     // MARK: Evaluation
 
     /// - Parameters:
     ///   - time: Seconds since the screen started playing.
-    ///   - idleMotion: Whether the settled badge keeps swaying, floating and turning. Off for Reduce Motion.
+    ///   - idleMotion: Whether the settled badge keeps turning every few seconds. Off for Reduce Motion.
     static func frame(at time: Double, idleMotion: Bool = true) -> CelebrationFrame {
-        let idleAmount = idleMotion ? idle.value(at: time) : 0
-        // A slow sway so the light keeps moving across the chrome and enamel.
-        let sway = sin((time - land) * 2 * .pi * 0.16) * 14 * idleAmount
-        let bob = sin(time * 2 * .pi * 0.35) * 3 * idleAmount
-
-        return CelebrationFrame(
-            tokenYaw: yaw.value(at: time) + sway + (idleMotion ? idleSpin(at: time) : 0),
-            tokenLift: lift.value(at: time) + bob,
-            tokenScale: scale.value(at: time)
-        )
+        CelebrationFrame(tokenYaw: yaw.value(at: time) - (idleMotion ? idleSpin(at: time) : 0))
     }
 
-    /// Whole turns added since the badge settled, easing in and out of each one.
+    /// Whole turns made since the badge settled, easing in and out of each one.
     private static func idleSpin(at time: Double) -> Double {
         guard time >= idleSpinStart else { return 0 }
         let elapsed = time - idleSpinStart
         let completed = (elapsed / idleSpinInterval).rounded(.down)
         let phase = elapsed - completed * idleSpinInterval
-        return 360 * (completed + Curve.easeInOut.apply(phase / idleSpinDuration))
+        return 360 * (completed + Curve.easeInOutQuad.apply(phase / idleSpinDuration))
     }
 }

@@ -4,7 +4,7 @@ import Testing
 
 struct CurveTests {
     @Test("Curves start at zero and end at one", arguments: [
-        Curve.linear, .easeIn, .easeOut, .easeInOut, .backOut, .spring(damping: 0.45), .spring(damping: 0.9),
+        Curve.linear, .easeIn, .easeOut, .easeInOut, .easeInOutQuad, .backOut, .spring(damping: 0.45), .spring(damping: 0.9),
     ])
     func endpoints(curve: Curve) {
         #expect(abs(curve.apply(0)) < 1e-9)
@@ -56,87 +56,102 @@ struct TrackTests {
 }
 
 struct CelebrationTimelineTests {
-    @Test("Opens facing front, at rest")
-    func opensAtRest() {
-        let frame = CelebrationTimeline.frame(at: 0)
-        #expect(frame.tokenYaw == 0)
-        #expect(frame.tokenLift == 0)
-        #expect(frame.tokenScale == 1)
+    func yaw(at time: Double, idleMotion: Bool = true) -> Double {
+        CelebrationTimeline.frame(at: time, idleMotion: idleMotion).tokenYaw
     }
 
-    @Test("Winds up the other way before it spins")
-    func windsUp() {
-        #expect(CelebrationTimeline.frame(at: CelebrationTimeline.spin).tokenYaw < 0)
+    @Test("Opens in three-quarter view and holds still until the turn starts")
+    func opensThreeQuarter() {
+        #expect(yaw(at: 0) == CelebrationTimeline.startYaw)
+        #expect(yaw(at: CelebrationTimeline.spin) == CelebrationTimeline.startYaw)
+        let projection = TokenProjection(yaw: CelebrationTimeline.startYaw, thickness: HeroMetrics.tokenThickness)
+        #expect(projection.showsFront)
+        #expect(projection.faceScale > 0.75 && projection.faceScale < 0.85)
     }
 
-    @Test("Shows its back twice in the spin, once per turn, before it lands")
-    func backGoesByTwice() {
+    @Test("Only ever turns one way, its right side coming towards the viewer")
+    func turnsOneWay() {
+        var previous = yaw(at: 0)
+        for time in stride(from: 0.0, through: 30, by: 1.0 / 120) {
+            let current = yaw(at: time)
+            #expect(current <= previous + 1e-9)
+            previous = current
+        }
+    }
+
+    @Test("Shows its back once on the way round")
+    func backGoesByOnce() {
         var passes = 0
         var wasShowingBack = false
         for time in stride(from: 0.0, through: CelebrationTimeline.land, by: 1.0 / 240) {
-            let frame = CelebrationTimeline.frame(at: time)
-            let showingBack = !TokenProjection(yaw: frame.tokenYaw, thickness: HeroMetrics.tokenThickness).showsFront
+            let showingBack = !TokenProjection(yaw: yaw(at: time), thickness: HeroMetrics.tokenThickness).showsFront
             if showingBack && !wasShowingBack {
                 passes += 1
             }
             wasShowingBack = showingBack
         }
-        #expect(passes == 2)
+        #expect(passes == 1)
     }
 
-    @Test("Has come back down by the time it lands")
-    func landsLow() {
-        #expect(abs(CelebrationTimeline.frame(at: CelebrationTimeline.land).tokenLift) < 4)
+    @Test("Turns slowly: gathers speed to about twice its average, fastest half-way, then eases off")
+    func slowTurn() {
+        let step = 1.0 / 240
+        let turn = stride(from: CelebrationTimeline.spin, to: CelebrationTimeline.land, by: step).map { time in
+            (time: time, speed: (yaw(at: time) - yaw(at: time + step)) / step)
+        }
+        let average = (CelebrationTimeline.startYaw - CelebrationTimeline.restingYaw) / (CelebrationTimeline.land - CelebrationTimeline.spin)
+        let fastest = turn.max { $0.speed < $1.speed }!
+        #expect(abs(fastest.speed / average - 2) < 0.02)
+        #expect(abs(fastest.time - (CelebrationTimeline.spin + CelebrationTimeline.land) / 2) < 0.05)
+        #expect(turn.first!.speed < average * 0.1)
+        #expect(turn.last!.speed < average * 0.1)
     }
 
-    @Test("Settles face-on after exactly two turns")
+    @Test("Settles face-on after the turn")
     func settles() {
-        let frame = CelebrationTimeline.frame(at: CelebrationTimeline.restingTime, idleMotion: false)
-        #expect(abs(frame.tokenYaw - CelebrationTimeline.restingYaw) < 0.5)
-        #expect(abs(frame.tokenScale - 1) < 0.01)
-        #expect(abs(frame.tokenLift) < 0.1)
+        #expect(abs(yaw(at: CelebrationTimeline.land) - CelebrationTimeline.restingYaw) < 1e-9)
+        #expect(abs(yaw(at: CelebrationTimeline.restingTime, idleMotion: false) - CelebrationTimeline.restingYaw) < 1e-9)
+        let projection = TokenProjection(yaw: CelebrationTimeline.restingYaw, thickness: HeroMetrics.tokenThickness)
+        #expect(projection.showsFront && abs(projection.faceScale - 1) < 1e-9)
     }
 
     @Test("Without idle motion it never turns again")
     func staysPutForReduceMotion() {
         for time in stride(from: CelebrationTimeline.restingTime, through: 40, by: 0.25) {
-            #expect(abs(CelebrationTimeline.frame(at: time, idleMotion: false).tokenYaw - CelebrationTimeline.restingYaw) < 0.5)
+            #expect(abs(yaw(at: time, idleMotion: false) - CelebrationTimeline.restingYaw) < 1e-9)
         }
     }
 
-    @Test("Between idle turns it rests face-on, swaying gently")
+    @Test("Between turns it rests face-on and perfectly still")
     func restsBetweenTurns() {
-        for time in stride(from: 3.0, through: 40, by: 0.01) {
-            let frame = CelebrationTimeline.frame(at: time)
-            #expect(abs(frame.tokenLift) <= 3.5)
+        for time in stride(from: CelebrationTimeline.land, through: 40, by: 0.01) {
             let sinceStart = time - CelebrationTimeline.idleSpinStart
             let turning = sinceStart >= 0
                 && sinceStart.truncatingRemainder(dividingBy: CelebrationTimeline.idleSpinInterval) < CelebrationTimeline.idleSpinDuration
             if !turning {
-                let offset = (frame.tokenYaw - CelebrationTimeline.restingYaw).truncatingRemainder(dividingBy: 360)
-                #expect(abs(offset) <= 15 || abs(offset) >= 345)
+                let offset = (yaw(at: time) - CelebrationTimeline.restingYaw).truncatingRemainder(dividingBy: 360)
+                #expect(abs(offset) < 1e-9)
             }
         }
     }
 
-    @Test("Turns a full circle every few seconds once settled")
+    @Test("Turns a full circle every few seconds once settled, as slowly as the first turn")
     func turnsAgain() {
         let spins = 3.0
         let time = CelebrationTimeline.idleSpinStart + spins * CelebrationTimeline.idleSpinInterval - 0.01
-        let frame = CelebrationTimeline.frame(at: time)
-        let turned = frame.tokenYaw - CelebrationTimeline.restingYaw
-        #expect(abs(turned - spins * 360) <= 15)
+        #expect(abs(CelebrationTimeline.restingYaw - yaw(at: time) - spins * 360) < 1e-9)
         #expect(CelebrationTimeline.idleSpinStart > CelebrationTimeline.restingTime)
+        #expect(CelebrationTimeline.idleSpinDuration == CelebrationTimeline.land - CelebrationTimeline.spin)
+        #expect(CelebrationTimeline.idleSpinDuration < CelebrationTimeline.idleSpinInterval)
     }
 
-    @Test("Beats run in order and finish before the resting time")
+    @Test("The words and the button arrive while it turns, and it lands before the resting time")
     func beatsInOrder() {
         let beats = [
-            CelebrationTimeline.anticipate, CelebrationTimeline.spin, CelebrationTimeline.land,
-            CelebrationTimeline.details, CelebrationTimeline.actions,
+            CelebrationTimeline.spin, CelebrationTimeline.details, CelebrationTimeline.actions, CelebrationTimeline.land,
         ]
         #expect(beats == beats.sorted())
-        #expect(CelebrationTimeline.actions < CelebrationTimeline.restingTime)
+        #expect(CelebrationTimeline.land < CelebrationTimeline.restingTime)
     }
 }
 
@@ -183,8 +198,8 @@ struct TokenLightTests {
         #expect(light.glint > 0.3 && light.glint < 0.8)
     }
 
-    @Test("Swaying towards the light glints and brightens the hot spot; swaying away dims both")
-    func sway() {
+    @Test("Turned towards the light the chrome glints and the hot spot brightens; turned away both dim")
+    func turning() {
         let towards = TokenLight(yaw: CelebrationTimeline.restingYaw + 14)
         let away = TokenLight(yaw: CelebrationTimeline.restingYaw - 14)
         #expect(towards.glint > away.glint)

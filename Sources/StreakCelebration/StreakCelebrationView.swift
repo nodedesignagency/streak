@@ -2,10 +2,10 @@ import SwiftUI
 
 /// A full-screen celebration shown when the user extends their streak.
 ///
-/// The streak badge winds up and flicks into two full spins, showing its chrome edge and the same artwork
-/// on its back. As it lands the gold at the bottom of the screen warms up; then the date, title and
-/// description arrive, and the share button. The badge keeps turning every few seconds, like a trophy on a
-/// turntable.
+/// The streak badge holds in three-quarter view, then makes one slow, smooth turn, showing its chrome edge
+/// and the same artwork on its back. The date, title and description rise in while it turns, then the share
+/// button; as it comes round to face you, the gold at the bottom of the screen warms up. After that it turns
+/// a full circle every few seconds, like a trophy on a turntable.
 ///
 ///     .fullScreenCover(isPresented: $showStreak) {
 ///         StreakCelebrationView(streak: 10) { showStreak = false }
@@ -138,8 +138,9 @@ public struct StreakCelebrationView: View {
 
     // MARK: Choreography
 
+    /// In the order they happen: the words and the button arrive while the badge is still turning.
     enum Stage: Int, Comparable {
-        case dormant, spinning, landed, details, actions
+        case dormant, spinning, details, actions, landed
 
         static func < (lhs: Stage, rhs: Stage) -> Bool {
             lhs.rawValue < rhs.rawValue
@@ -148,16 +149,16 @@ public struct StreakCelebrationView: View {
 
     private func play() async {
         guard !reduceMotion else {
-            stage = .actions
+            stage = .landed
             return
         }
         start = .now
 
         let beats: [(TimeInterval, Stage)] = [
             (CelebrationTimeline.spin, .spinning),
-            (CelebrationTimeline.land, .landed),
             (CelebrationTimeline.details, .details),
             (CelebrationTimeline.actions, .actions),
+            (CelebrationTimeline.land, .landed),
         ]
         for (time, next) in beats {
             guard await wait(until: time) else { return }
@@ -186,11 +187,11 @@ public struct StreakCelebrationView: View {
     }
 
     private func skipToEnd() {
-        guard stage < .actions, !reduceMotion else { return }
+        guard stage < .landed, !reduceMotion else { return }
         // Move the clock forward so every time-driven layer lands on its final frame.
         start = Date.now.addingTimeInterval(-CelebrationTimeline.restingTime)
         withAnimation(.spring(response: 0.45, dampingFraction: 0.86)) {
-            stage = .actions
+            stage = .landed
         }
     }
 }

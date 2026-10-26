@@ -3,7 +3,7 @@ import Foundation
 /// How the light falls on the badge at a given turn.
 ///
 /// The light sits a little to the left of the viewer. Turned towards it, the hot spot brightens and the
-/// chrome edge flashes white; turned away, both fade. As the badge sways it moves between these, the way
+/// chrome edge flashes white; turned away, both fade. As the badge turns it moves between these, the way
 /// polished metal and glossy enamel do.
 struct TokenLight: Equatable, Sendable {
     /// 1 facing the light, falling to 0 as the face turns away; drives the hot spot.

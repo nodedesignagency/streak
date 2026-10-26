@@ -6,6 +6,9 @@ enum Curve: Sendable {
     case easeIn
     case easeOut
     case easeInOut
+    /// A gentler ease-in-out (quadratic): it gathers speed and slows down more gradually than `easeInOut`,
+    /// peaking at twice its average speed rather than three times.
+    case easeInOutQuad
     /// Overshoots slightly, then settles. Good for things that "pop" into place.
     case backOut
     /// A damped spring that comes to rest by the end of the segment.
@@ -24,6 +27,8 @@ enum Curve: Sendable {
             return 1 - q * q * q
         case .easeInOut:
             return p < 0.5 ? 4 * p * p * p : 1 - pow(-2 * p + 2, 3) / 2
+        case .easeInOutQuad:
+            return p < 0.5 ? 2 * p * p : 1 - pow(-2 * p + 2, 2) / 2
         case .backOut:
             let overshoot = 1.70158
             let q = p - 1
