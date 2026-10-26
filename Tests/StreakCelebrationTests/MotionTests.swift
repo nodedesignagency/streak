@@ -70,10 +70,10 @@ struct CelebrationTimelineTests {
         return stride(from: start, to: end, by: step).map { (yaw(at: $0) - yaw(at: $0 + step)) / step }.max() ?? 0
     }
 
-    @Test("Opens below the screen at twice its size, in three-quarter view")
+    @Test("Opens below the screen at one and a half times its size, in three-quarter view")
     func opensBelow() {
         let opening = frame(at: 0)
-        #expect(opening.tokenScale == 2)
+        #expect(opening.tokenScale == 1.5)
         #expect(opening.tokenYaw == CelebrationTimeline.startYaw)
         // Off the bottom of the tallest iPhone (956 pt) even if its place were only 250 pt down the screen.
         let topEdge = 250 + opening.tokenDrop - HeroMetrics.tokenHeight * opening.tokenScale / 2
@@ -91,16 +91,30 @@ struct CelebrationTimelineTests {
         }
     }
 
-    @Test("Comes to rest at its place just as it faces the viewer, still twice its size")
+    @Test("Comes to rest all at once: at its place, facing the viewer and at its own size")
     func lands() {
         let landing = frame(at: CelebrationTimeline.land)
         #expect(landing.tokenDrop == 0)
         #expect(abs(landing.tokenYaw - CelebrationTimeline.restingYaw) < 1e-9)
-        #expect(landing.tokenScale == 2)
-        // Still on its way a moment earlier, on both counts.
+        #expect(landing.tokenScale == 1)
+        // Still on its way a moment earlier, on all three counts.
         let before = frame(at: CelebrationTimeline.land - 0.2)
         #expect(before.tokenDrop > 0)
         #expect(before.tokenYaw > CelebrationTimeline.restingYaw)
+        #expect(before.tokenScale > 1)
+    }
+
+    @Test("Never stops on the way: something is always moving until it settles")
+    func neverStops() {
+        let step = 1.0 / 240
+        for time in stride(from: 0.01, to: CelebrationTimeline.land - 0.05, by: 0.01) {
+            let now = frame(at: time)
+            let next = frame(at: time + step)
+            let turning = abs(next.tokenYaw - now.tokenYaw) / step > 5          // degrees a second
+            let rising = abs(next.tokenDrop - now.tokenDrop) / step > 5         // points a second
+            let shrinking = abs(next.tokenScale - now.tokenScale) / step > 0.05 // per second
+            #expect(turning || rising || shrinking)
+        }
     }
 
     @Test("Only ever turns one way, its right side coming towards the viewer")
@@ -141,19 +155,24 @@ struct CelebrationTimelineTests {
         #expect(abs(idle - 2) < 0.02)
     }
 
-    @Test("Shrinks back to its own size after it lands, before the words arrive")
-    func shrinks() {
-        #expect(frame(at: CelebrationTimeline.shrink).tokenScale == 2)
-        let shrunk = CelebrationTimeline.shrink + CelebrationTimeline.shrinkDuration
-        #expect(frame(at: shrunk).tokenScale == 1)
-        #expect(CelebrationTimeline.shrink >= CelebrationTimeline.land)
-        #expect(CelebrationTimeline.details >= shrunk)
-        var previous = 2.0
-        for time in stride(from: CelebrationTimeline.shrink, through: shrunk, by: 1.0 / 120) {
+    @Test("Starts shrinking while it is still rising and turning, and finishes as it lands")
+    func shrinksOnTheWay() {
+        let starting = frame(at: CelebrationTimeline.shrink)
+        #expect(starting.tokenScale == CelebrationTimeline.entranceScale)
+        #expect(starting.tokenDrop > 0)
+        #expect(starting.tokenYaw > CelebrationTimeline.restingYaw + 90)
+        #expect(CelebrationTimeline.details >= CelebrationTimeline.land)
+        var previous = CelebrationTimeline.entranceScale
+        for time in stride(from: 0.0, through: CelebrationTimeline.restingTime, by: 1.0 / 120) {
             let scale = frame(at: time).tokenScale
             #expect(scale <= previous + 1e-9 && scale >= 1)
             previous = scale
         }
+        // No jump: it is barely changing size as the shrink starts and as it ends.
+        let step = 1.0 / 240
+        let startRate = (CelebrationTimeline.entranceScale - frame(at: CelebrationTimeline.shrink + step).tokenScale) / step
+        let endRate = (frame(at: CelebrationTimeline.land - step).tokenScale - 1) / step
+        #expect(startRate < 0.01 && endRate < 0.01)
     }
 
     @Test("Settles face-on at its own size and place")
@@ -198,7 +217,7 @@ struct CelebrationTimelineTests {
     @Test("Beats run in order and finish before the resting time")
     func beatsInOrder() {
         let beats = [
-            CelebrationTimeline.spin, CelebrationTimeline.land, CelebrationTimeline.shrink,
+            CelebrationTimeline.spin, CelebrationTimeline.shrink, CelebrationTimeline.land,
             CelebrationTimeline.details, CelebrationTimeline.actions,
         ]
         #expect(beats == beats.sorted())

@@ -14,37 +14,39 @@ struct CelebrationFrame: Equatable, Sendable {
 
 /// The whole celebration as pure functions of elapsed time, so it can be scrubbed, replayed, skipped and tested.
 ///
-/// The badge rises from below the screen at twice its size, turning at twice the speed of its idle turns,
-/// and comes to rest at its place facing the viewer. Then it shrinks back to its own size, and the words and
-/// the share button arrive. After that it turns a full circle every few seconds, the slow way the coin turns
-/// in the trophy-screen recording.
+/// The badge rises from below the screen at one and a half times its size, turning at twice the speed of its
+/// idle turns. As it nears its place it starts shrinking back to its own size, and it settles in one
+/// continuous movement: the rise, the turn and the shrink all come to rest together, facing the viewer.
+/// Then the words and the share button arrive. After that it turns a full circle every few seconds, the
+/// slow way the coin turns in the trophy-screen recording.
 enum CelebrationTimeline {
     // MARK: Beats (seconds since the screen started playing)
 
     /// It starts rising and turning.
     static let spin = 0.0
-    /// It comes to rest at its place, face-on and still twice its size; the gold at the bottom of the screen
-    /// warms up.
+    /// It starts shrinking back to its own size while it is still rising and turning, so it never stops
+    /// before it settles.
+    static let shrink = 0.8
+    /// It comes to rest at its place, facing the viewer and at its own size, all at once; the gold at the
+    /// bottom of the screen warms up.
     static let land = 1.8
-    /// It shrinks back to its own size.
-    static let shrink = 2.0
-    static let shrinkDuration = 0.5
-    /// The date, title and description arrive once it is back to its own size.
-    static let details = 2.55
+    /// The date, title and description arrive once it has settled.
+    static let details = 1.95
     /// The share button arrives.
-    static let actions = 3.15
+    static let actions = 2.55
 
     /// A moment after everything has settled; used for Reduce Motion and for skipping ahead.
-    static let restingTime = 4.0
+    static let restingTime = 3.4
 
     /// How it starts: three-quarters on, its chrome edge showing on the right.
     static let startYaw = -37.0
     /// Facing the viewer, after turning the rest of the way round from three-quarter view.
     static let restingYaw = -360.0
-    /// How far below its place it starts, in points: off the bottom of the tallest iPhone even at twice its size.
-    static let riseDistance = 1000.0
+    /// How far below its place it starts, in points: off the bottom of the tallest iPhone even at its
+    /// entrance size.
+    static let riseDistance = 900.0
     /// Its size as it rises.
-    static let entranceScale = 2.0
+    static let entranceScale = 1.5
 
     /// Once settled, it turns another full circle every few seconds, at half the speed it rose with.
     static let idleSpinStart = 6.0
@@ -53,13 +55,15 @@ enum CelebrationTimeline {
 
     // MARK: Tracks
 
-    // Rising and turning end together, so it comes to rest at its place just as it faces the viewer.
+    // Rising, turning and shrinking all end together at `land`, each easing to a stop, so the badge comes
+    // to rest at its place, facing the viewer and at its own size, in one movement. The shrink starts from
+    // rest while the badge is still on its way, so there is no pause and no sudden jump in size.
     private static let yaw = Track(startYaw)
         .to(restingYaw, at: spin, over: land - spin, .easeInOutQuad)
     private static let drop = Track(riseDistance)
         .to(0, at: spin, over: land - spin, .easeOut)
     private static let scale = Track(entranceScale)
-        .to(1, at: shrink, over: shrinkDuration, .easeInOut)
+        .to(1, at: shrink, over: land - shrink, .easeInOutQuad)
 
     // MARK: Evaluation
 
