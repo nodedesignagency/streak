@@ -14,17 +14,18 @@ struct CelebrationFrame: Equatable, Sendable {
 
 /// The whole celebration as pure functions of elapsed time, so it can be scrubbed, replayed, skipped and tested.
 ///
-/// The badge rises from below the screen at one and a half times its size, turning at twice the speed of its
-/// idle turns. As it nears its place it starts shrinking back to its own size, and it settles in one
-/// continuous movement: the rise, the turn and the shrink all come to rest together, facing the viewer.
+/// The badge rises from below the screen at one and a half times its size, spinning in fast, nearly three
+/// turns, and winding down as it goes. As it nears its place it starts shrinking back to its own size, and
+/// it settles in one continuous movement: the rise, the spin and the shrink all come to rest together,
+/// facing the viewer.
 /// Then the words and the share button arrive. After that it turns a full circle every few seconds, the
 /// slow way the coin turns in the trophy-screen recording.
 enum CelebrationTimeline {
     // MARK: Beats (seconds since the screen started playing)
 
-    /// It starts rising and turning.
+    /// It starts rising and spinning.
     static let spin = 0.0
-    /// It starts shrinking back to its own size while it is still rising and turning, so it never stops
+    /// It starts shrinking back to its own size while it is still rising and spinning, so it never stops
     /// before it settles.
     static let shrink = 0.8
     /// It comes to rest at its place, facing the viewer and at its own size, all at once; the gold at the
@@ -40,26 +41,30 @@ enum CelebrationTimeline {
 
     /// How it starts: three-quarters on, its chrome edge showing on the right.
     static let startYaw = -37.0
-    /// Facing the viewer, after turning the rest of the way round from three-quarter view.
-    static let restingYaw = -360.0
+    /// Whole turns it spins on its way in, on top of turning the rest of the way round to face the viewer.
+    static let entranceTurns = 2.0
+    /// Facing the viewer, after spinning in from three-quarter view.
+    static let restingYaw = -360.0 * (1 + entranceTurns)
     /// How far below its place it starts, in points: off the bottom of the tallest iPhone even at its
     /// entrance size.
     static let riseDistance = 900.0
     /// Its size as it rises.
     static let entranceScale = 1.5
 
-    /// Once settled, it turns another full circle every few seconds, at half the speed it rose with.
+    /// Once settled, it turns another full circle every few seconds, slowly and evenly.
     static let idleSpinStart = 6.0
     static let idleSpinInterval = 6.0
     static let idleSpinDuration = 3.6
 
     // MARK: Tracks
 
-    // Rising, turning and shrinking all end together at `land`, each easing to a stop, so the badge comes
-    // to rest at its place, facing the viewer and at its own size, in one movement. The shrink starts from
-    // rest while the badge is still on its way, so there is no pause and no sudden jump in size.
+    // Rising, spinning and shrinking all end together at `land`, each easing to a stop, so the badge comes
+    // to rest at its place, facing the viewer and at its own size, in one movement. The spin eases out: it
+    // is fastest as the badge comes up into view and winds down from there, like a coin spun on a table.
+    // The shrink starts from rest while the badge is still on its way, so there is no pause and no sudden
+    // jump in size.
     private static let yaw = Track(startYaw)
-        .to(restingYaw, at: spin, over: land - spin, .easeInOutQuad)
+        .to(restingYaw, at: spin, over: land - spin, .easeOut)
     private static let drop = Track(riseDistance)
         .to(0, at: spin, over: land - spin, .easeOut)
     private static let scale = Track(entranceScale)

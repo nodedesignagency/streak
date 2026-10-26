@@ -4,11 +4,11 @@ A SwiftUI screen for the moment a user extends their streak, laid out like a tro
 fire badge in chrome and glossy enamel, then the date, the title "10 Day Streak" and a short description,
 over a charcoal stage that warms into gold towards the bottom, with a single share button.
 
-The badge rises from below the screen at one and a half times its size, turning as it comes, and shrinks
-back to its own size as it settles at its place facing you, in one continuous movement, while the gold at
-the bottom of the screen warms up. It shows its chrome edge and the same artwork on its back, in its own
-colours from start to finish. Then the words and the share button arrive. After that it turns a full
-circle every few seconds, like a trophy on a turntable.
+The badge rises from below the screen at one and a half times its size, spinning in fast and winding
+down, and shrinks back to its own size as it settles at its place facing you, in one continuous movement,
+while the gold at the bottom of the screen warms up. It shows its chrome edge and the same artwork on its
+back, in its own colours from start to finish. Then the words and the share button arrive. After that it
+turns a full circle every few seconds, like a trophy on a turntable.
 
 <p align="center">
   <img src="docs/preview.gif" width="260" alt="Animated preview of the streak celebration">
@@ -73,20 +73,18 @@ All timing lives in `Motion/CelebrationTimeline.swift`. Every layer is a pure fu
 
 | Time | Beat |
 | --- | --- |
-| 0.00s | **Rise** (light haptic): the badge starts 900 pt below its place, off the bottom of the screen, at 1.5× its size and turned 37° with its chrome edge on the right. It rises fast, slowing as it nears its place, and turns as it comes, its right side towards you. The gold wash at the bottom of the screen is dim. |
-| 0.52s | Edge-on, low on the screen; its back, the same artwork as the front, comes round. |
-| 0.80s | Still rising and turning, it starts shrinking back to its own size. |
-| 0.85s | Its back faces you as it nears its place. It is turning fastest here (about 355°/s). |
-| 1.13s | Edge-on again, the front coming round; the turn eases off as it keeps shrinking. |
-| 1.80s | **Lands** (success haptic, heavy on a milestone day): the rise, the turn and the shrink come to rest together, so it settles at its place, facing you and at its own size, without stopping first. The gold wash warms up. |
+| 0.00s | **Rise** (light haptic): the badge starts 900 pt below its place, off the bottom of the screen, at 1.5× its size and turned 37° with its chrome edge on the right. It rises fast, slowing as it nears its place, and comes up spinning hard, its right side towards you: nearly five turns a second, winding down from there. The gold wash at the bottom of the screen is dim. |
+| 0.80s | Still rising and spinning, now about one and a half turns a second, it starts shrinking back to its own size. |
+| 1.80s | **Lands** (success haptic, heavy on a milestone day): the rise, the spin (nearly three turns in all) and the shrink come to rest together, so it settles at its place, facing you and at its own size, without stopping first. The gold wash warms up. |
 | 1.95s | The date, title and description rise in. |
 | 2.55s | The share button arrives. |
-| 6.00s | It turns a full circle at half the speed it rose with, and again every six seconds after that. Between turns it holds perfectly still. |
+| 6.00s | It turns a full circle slowly and evenly, and again every six seconds after that. Between turns it holds perfectly still. |
 
-Each turn is an ease-in-out (`Curve.easeInOutQuad`) that starts and ends at rest and peaks at twice its
-average speed half-way round: 1.8 seconds as it rises, twice as fast as the 3.6-second turns once it has
-settled. The rise (an ease-out), the turn and the shrink (an ease-in-out from 0.8 s) all end at 1.8 s, so
-there is no pause between arriving and settling, and no sudden change in size. The idle turn's direction,
+The entrance spin is an ease-out: fastest as the badge comes up into view (about 1,700°/s) and winding
+down to a stop at 1.8 s, like a coin spun on a table. `CelebrationTimeline.entranceTurns` sets how many
+extra whole turns it makes on the way in. The idle turns are a gentle 3.6-second ease-in-out
+(`Curve.easeInOutQuad`). The rise (an ease-out), the spin and the shrink (an ease-in-out from 0.8 s) all
+end at 1.8 s, so there is no pause between arriving and settling, and no sudden change in size. The idle turn's direction,
 length and curve were measured frame by frame from the trophy-screen recording. A hot spot and a sheen
 slide across the badge as it turns towards and away from the light, and the chrome edge glints as it
 catches it (`Motion/TokenLight.swift`).

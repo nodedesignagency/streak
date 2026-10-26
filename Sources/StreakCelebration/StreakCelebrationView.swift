@@ -2,10 +2,11 @@ import SwiftUI
 
 /// A full-screen celebration shown when the user extends their streak.
 ///
-/// The streak badge rises from below the screen at one and a half times its size, turning as it comes, and
-/// shrinks back to its own size as it settles at its place facing you, in one continuous movement, while
-/// the gold at the bottom of the screen warms up. Then the date, title and description arrive, and the
-/// share button. After that it turns a full circle every few seconds, like a trophy on a turntable.
+/// The streak badge rises from below the screen at one and a half times its size, spinning in fast and
+/// winding down, and shrinks back to its own size as it settles at its place facing you, in one continuous
+/// movement, while the gold at the bottom of the screen warms up. Then the date, title and description
+/// arrive, and the share button. After that it turns a full circle every few seconds, like a trophy on a
+/// turntable.
 ///
 ///     .fullScreenCover(isPresented: $showStreak) {
 ///         StreakCelebrationView(streak: 10) { showStreak = false }

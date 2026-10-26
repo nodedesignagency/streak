@@ -127,8 +127,8 @@ struct CelebrationTimelineTests {
         }
     }
 
-    @Test("Shows its back once on the way up")
-    func backGoesByOnce() {
+    @Test("Shows its back once for each turn on the way up")
+    func backGoesByEachTurn() {
         var passes = 0
         var wasShowingBack = false
         for time in stride(from: 0.0, through: CelebrationTimeline.land, by: 1.0 / 240) {
@@ -138,21 +138,27 @@ struct CelebrationTimelineTests {
             }
             wasShowingBack = showingBack
         }
-        #expect(passes == 1)
+        #expect(passes == 1 + Int(CelebrationTimeline.entranceTurns))
     }
 
-    @Test("Turns twice as fast rising as it does once settled, easing in and out of both")
-    func twiceAsFast() {
-        #expect((CelebrationTimeline.land - CelebrationTimeline.spin) * 2 == CelebrationTimeline.idleSpinDuration)
-        // Per degree: the rising turn covers less than a full circle, so compare average speeds.
-        let rising = peakSpeed(from: CelebrationTimeline.spin, to: CelebrationTimeline.land)
-            / ((CelebrationTimeline.startYaw - CelebrationTimeline.restingYaw) / (CelebrationTimeline.land - CelebrationTimeline.spin))
+    @Test("Spins in fast, nearly three turns, and winds down without ever speeding up again")
+    func spinsInFast() {
+        let turns = (CelebrationTimeline.startYaw - CelebrationTimeline.restingYaw) / 360
+        #expect(turns > 2.5 && turns < 3)
+        let step = 1.0 / 240
+        func speed(at time: Double) -> Double { (yaw(at: time) - yaw(at: time + step)) / step }
         let idleStart = CelebrationTimeline.idleSpinStart
-        let idle = peakSpeed(from: idleStart, to: idleStart + CelebrationTimeline.idleSpinDuration)
-            / (360 / CelebrationTimeline.idleSpinDuration)
-        // Both peak at twice their own average speed, half-way through.
-        #expect(abs(rising - 2) < 0.02)
-        #expect(abs(idle - 2) < 0.02)
+        let idlePeak = peakSpeed(from: idleStart, to: idleStart + CelebrationTimeline.idleSpinDuration)
+        // Coming up into view it spins at several times the speed of its idle turns: about four turns a second.
+        #expect(speed(at: 0.15) > 5 * idlePeak)
+        #expect(speed(at: 0.15) > 4 * 360)
+        var previous = speed(at: 0)
+        for time in stride(from: step, to: CelebrationTimeline.land, by: step) {
+            let current = speed(at: time)
+            #expect(current <= previous + 1e-6)
+            previous = current
+        }
+        #expect(speed(at: CelebrationTimeline.land) == 0)
     }
 
     @Test("Starts shrinking while it is still rising and turning, and finishes as it lands")
