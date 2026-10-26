@@ -2,10 +2,10 @@ import SwiftUI
 
 /// A full-screen celebration shown when the user extends their streak.
 ///
-/// The streak badge winds up and flicks into two full spins, its chrome back going by with the new count
-/// engraved on it. Its enamel flares as it lands and the gold at the bottom of the screen warms up; then the
-/// date, title and description arrive, and the share button. The badge keeps turning every few seconds,
-/// like a trophy on a turntable.
+/// The streak badge winds up and flicks into two full spins, showing its chrome edge and the same artwork
+/// on its back. As it lands the gold at the bottom of the screen warms up; then the date, title and
+/// description arrive, and the share button. The badge keeps turning every few seconds, like a trophy on a
+/// turntable.
 ///
 ///     .fullScreenCover(isPresented: $showStreak) {
 ///         StreakCelebrationView(streak: 10) { showStreak = false }
@@ -14,10 +14,8 @@ import SwiftUI
 /// Tapping anywhere while it plays skips to the end. With Reduce Motion on it shows the final state.
 public struct StreakCelebrationView: View {
     private let streak: Int
-    private let previousStreak: Int
     private let milestone: StreakMilestone
     private let dateLine: String
-    private let earnedOn: String
     private let title: String
     private let message: String
     private let shareMessage: String
@@ -32,24 +30,19 @@ public struct StreakCelebrationView: View {
 
     /// - Parameters:
     ///   - streak: The streak after today's activity.
-    ///   - previousStreak: The count on the back of the badge the first time it goes by in the spin, before
-    ///     the new count comes round. Defaults to `streak - 1`.
-    ///   - today: The day being celebrated, shown above the title and on the back of the badge.
+    ///   - today: The day being celebrated, shown above the title.
     ///   - message: The paragraph under the title. Defaults to how far the next milestone is.
     ///   - onClose: Called when the user taps the close button.
     public init(
         streak: Int,
-        previousStreak: Int? = nil,
         today: Date = .now,
         message: String? = nil,
         onClose: @escaping () -> Void = {}
     ) {
         let streak = max(streak, 1)
         self.streak = streak
-        self.previousStreak = previousStreak ?? streak - 1
         self.milestone = StreakMilestone(streak: streak)
         self.dateLine = today.formatted(.dateTime.month(.twoDigits).day(.twoDigits).year(.twoDigits))
-        self.earnedOn = today.formatted(.dateTime.day().month(.abbreviated).year()).uppercased()
         self.title = StreakCopy.title(for: streak)
         self.message = message ?? StreakCopy.description(for: streak)
         self.shareMessage = StreakCopy.share(for: streak)
@@ -68,13 +61,7 @@ public struct StreakCelebrationView: View {
 
             Spacer(minLength: 8)
 
-            TokenHero(
-                clock: clock,
-                previousStreak: previousStreak,
-                streak: streak,
-                earnedOn: earnedOn,
-                palette: palette
-            )
+            TokenHero(clock: clock, palette: palette)
 
             VStack(spacing: 10) {
                 Text(dateLine)

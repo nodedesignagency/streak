@@ -56,12 +56,12 @@ struct TrackTests {
 }
 
 struct CelebrationTimelineTests {
-    @Test("Opens facing front, dull, with the previous count on its back")
-    func opensDormant() {
+    @Test("Opens facing front, at rest")
+    func opensAtRest() {
         let frame = CelebrationTimeline.frame(at: 0)
         #expect(frame.tokenYaw == 0)
-        #expect(!frame.showsNewCount)
-        #expect(frame.ignition == 0)
+        #expect(frame.tokenLift == 0)
+        #expect(frame.tokenScale == 1)
     }
 
     @Test("Winds up the other way before it spins")
@@ -69,59 +69,24 @@ struct CelebrationTimelineTests {
         #expect(CelebrationTimeline.frame(at: CelebrationTimeline.spin).tokenYaw < 0)
     }
 
-    @Test("The count only changes edge-on, when neither face can be read")
-    func swapsOutOfSight() {
-        var sawBackBeforeReveal = false
-        var previous = CelebrationTimeline.frame(at: 0)
-        for time in stride(from: 0.0, through: CelebrationTimeline.restingTime, by: 1.0 / 240) {
-            let frame = CelebrationTimeline.frame(at: time)
-            let projection = TokenProjection(yaw: frame.tokenYaw, thickness: HeroMetrics.tokenThickness)
-            if frame.showsNewCount != previous.showsNewCount {
-                // Edge-on at the swap (within one sample of it): neither face is readable.
-                #expect(projection.faceScale < 0.1)
-            }
-            if !projection.showsFront && time < CelebrationTimeline.reveal {
-                sawBackBeforeReveal = true
-            }
-            previous = frame
-        }
-        #expect(sawBackBeforeReveal)
-    }
-
-    @Test("At the reveal the front is back in view, the new count already on the back")
-    func reveal() {
-        let frame = CelebrationTimeline.frame(at: CelebrationTimeline.reveal)
-        #expect(frame.showsNewCount)
-        #expect(TokenProjection(yaw: frame.tokenYaw, thickness: HeroMetrics.tokenThickness).showsFront)
-    }
-
-    @Test("The back goes by twice in the spin: first with the previous count, then the new one")
+    @Test("Shows its back twice in the spin, once per turn, before it lands")
     func backGoesByTwice() {
-        var passes: [Bool] = []
+        var passes = 0
         var wasShowingBack = false
-        for time in stride(from: 0.0, through: CelebrationTimeline.reveal, by: 1.0 / 240) {
+        for time in stride(from: 0.0, through: CelebrationTimeline.land, by: 1.0 / 240) {
             let frame = CelebrationTimeline.frame(at: time)
             let showingBack = !TokenProjection(yaw: frame.tokenYaw, thickness: HeroMetrics.tokenThickness).showsFront
             if showingBack && !wasShowingBack {
-                passes.append(frame.showsNewCount)
-            }
-            if showingBack {
-                // The count never changes while the back is in view.
-                #expect(frame.showsNewCount == passes.last)
+                passes += 1
             }
             wasShowingBack = showingBack
         }
-        #expect(passes == [false, true])
+        #expect(passes == 2)
     }
 
-    @Test("Stays dull while spinning, and polishes up as it lands")
-    func lightsUp() {
-        for time in stride(from: 0, to: CelebrationTimeline.land - 0.05, by: 0.01) {
-            #expect(CelebrationTimeline.frame(at: time).ignition <= 0.2)
-        }
-        let landing = CelebrationTimeline.frame(at: CelebrationTimeline.land)
-        #expect(abs(landing.tokenLift) < 4)
-        #expect(landing.ignition > 1)
+    @Test("Has come back down by the time it lands")
+    func landsLow() {
+        #expect(abs(CelebrationTimeline.frame(at: CelebrationTimeline.land).tokenLift) < 4)
     }
 
     @Test("Settles face-on after exactly two turns")
@@ -130,8 +95,6 @@ struct CelebrationTimelineTests {
         #expect(abs(frame.tokenYaw - CelebrationTimeline.restingYaw) < 0.5)
         #expect(abs(frame.tokenScale - 1) < 0.01)
         #expect(abs(frame.tokenLift) < 0.1)
-        #expect(frame.ignition == 1)
-        #expect(frame.showsNewCount)
     }
 
     @Test("Without idle motion it never turns again")
@@ -146,7 +109,6 @@ struct CelebrationTimelineTests {
         for time in stride(from: 3.0, through: 40, by: 0.01) {
             let frame = CelebrationTimeline.frame(at: time)
             #expect(abs(frame.tokenLift) <= 3.5)
-            #expect(frame.showsNewCount)
             let sinceStart = time - CelebrationTimeline.idleSpinStart
             let turning = sinceStart >= 0
                 && sinceStart.truncatingRemainder(dividingBy: CelebrationTimeline.idleSpinInterval) < CelebrationTimeline.idleSpinDuration
@@ -170,8 +132,8 @@ struct CelebrationTimelineTests {
     @Test("Beats run in order and finish before the resting time")
     func beatsInOrder() {
         let beats = [
-            CelebrationTimeline.anticipate, CelebrationTimeline.spin, CelebrationTimeline.reveal,
-            CelebrationTimeline.land, CelebrationTimeline.details, CelebrationTimeline.actions,
+            CelebrationTimeline.anticipate, CelebrationTimeline.spin, CelebrationTimeline.land,
+            CelebrationTimeline.details, CelebrationTimeline.actions,
         ]
         #expect(beats == beats.sorted())
         #expect(CelebrationTimeline.actions < CelebrationTimeline.restingTime)
@@ -215,19 +177,17 @@ struct TokenProjectionTests {
 }
 
 struct TokenLightTests {
-    @Test("Face-on, the chrome sits between its glint and its shade")
+    @Test("Face-on, the chrome catches some of the light but not all of it")
     func faceOn() {
         let light = TokenLight(yaw: 0)
         #expect(light.glint > 0.3 && light.glint < 0.8)
-        #expect(light.shade > 0.1 && light.shade < 0.5)
     }
 
-    @Test("Swaying one way glints, the other way falls into shade")
+    @Test("Swaying towards the light glints and brightens the hot spot; swaying away dims both")
     func sway() {
         let towards = TokenLight(yaw: CelebrationTimeline.restingYaw + 14)
         let away = TokenLight(yaw: CelebrationTimeline.restingYaw - 14)
         #expect(towards.glint > away.glint)
-        #expect(away.shade > towards.shade)
         #expect(towards.facing > away.facing)
     }
 
@@ -236,40 +196,6 @@ struct TokenLightTests {
         let light = TokenLight(yaw: yaw)
         #expect((0...1).contains(light.facing))
         #expect((0...0.8).contains(light.glint))
-        #expect((0...0.5).contains(light.shade))
-    }
-}
-
-struct BadgeFinishTests {
-    func finish(at time: Double, idleMotion: Bool = true) -> BadgeFinish {
-        let frame = CelebrationTimeline.frame(at: time, idleMotion: idleMotion)
-        return BadgeFinish(ignition: frame.ignition, light: TokenLight(yaw: frame.tokenYaw))
-    }
-
-    @Test("Settled face-on, the badge shows its artwork as drawn")
-    func settled() {
-        let settled = finish(at: CelebrationTimeline.restingTime, idleMotion: false)
-        #expect(settled.saturation == 1)
-        #expect(abs(settled.brightness) < 0.005)
-    }
-
-    @Test("Muted while it spins, and flaring as it lands")
-    func mutedThenFlaring() {
-        for time in stride(from: 0, to: CelebrationTimeline.land - 0.05, by: 0.01) {
-            #expect(finish(at: time).saturation < 0.6)
-            #expect(finish(at: time).brightness < -0.09)
-        }
-        let landing = stride(from: CelebrationTimeline.land, through: CelebrationTimeline.land + 0.3, by: 0.01)
-        #expect((landing.map { finish(at: $0).brightness }.max() ?? 0) > 0.08)
-    }
-
-    @Test("Brightens a touch swaying towards the light and darkens swaying away")
-    func sway() {
-        let towards = BadgeFinish(ignition: 1, light: TokenLight(yaw: CelebrationTimeline.restingYaw + 14))
-        let away = BadgeFinish(ignition: 1, light: TokenLight(yaw: CelebrationTimeline.restingYaw - 14))
-        #expect(towards.brightness > 0.02)
-        #expect(away.brightness < -0.02)
-        #expect(max(abs(towards.brightness), abs(away.brightness)) < 0.06)
     }
 }
 

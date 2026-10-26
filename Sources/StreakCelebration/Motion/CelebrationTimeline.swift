@@ -8,12 +8,6 @@ struct CelebrationFrame: Equatable, Sendable {
     /// Points above the resting position.
     var tokenLift: Double
     var tokenScale: Double
-    /// How polished the badge looks: 0 dull, warming a little as it spins, flaring past 1 as it lands, then 1.
-    var ignition: Double
-
-    /// The count engraved on the back of the badge has changed to the new one. Its back goes by twice in
-    /// the spin, showing the previous count the first time and the new count the second.
-    var showsNewCount: Bool { tokenYaw >= CelebrationTimeline.swapAngle }
 }
 
 /// The whole celebration as pure functions of elapsed time, so it can be scrubbed, replayed, skipped and tested.
@@ -24,9 +18,7 @@ enum CelebrationTimeline {
     static let anticipate = 0.20
     /// It flicks into two full turns, rising as it goes.
     static let spin = 0.40
-    /// The front comes round again, after the back has gone by with the new count on it.
-    static let reveal = 1.00
-    /// It settles facing the viewer and polishes up; the gold at the bottom of the screen warms up.
+    /// It settles facing the viewer; the gold at the bottom of the screen warms up.
     static let land = 1.55
     /// The date, title and description arrive.
     static let details = 1.85
@@ -36,8 +28,6 @@ enum CelebrationTimeline {
     /// A moment after everything has settled; used for Reduce Motion and for skipping ahead.
     static let restingTime = 4.3
 
-    /// Yaw at which the count on the back changes. The token is edge-on here, and its back comes next.
-    static let swapAngle = 450.0
     static let restingYaw = 720.0
 
     /// Once settled, the badge turns another full circle every few seconds, like a trophy on a turntable.
@@ -59,10 +49,6 @@ enum CelebrationTimeline {
         .to(0.96, at: anticipate, over: spin - anticipate, .easeOut)
         .to(1.06, at: spin, over: 0.6, .easeOut)
         .to(1, at: 1.40, over: 0.6, .spring(damping: 0.5))
-    private static let ignition = Track(0)
-        .to(0.18, at: spin, over: land - spin - 0.05, .easeIn)
-        .to(1.35, at: land - 0.05, over: 0.15, .easeOut)
-        .to(1, at: land + 0.1, over: 0.6, .easeOut)
     private static let idle = Track(0)
         .to(1, at: land + 0.5, over: 1.0, .easeInOut)
 
@@ -80,8 +66,7 @@ enum CelebrationTimeline {
         return CelebrationFrame(
             tokenYaw: yaw.value(at: time) + sway + (idleMotion ? idleSpin(at: time) : 0),
             tokenLift: lift.value(at: time) + bob,
-            tokenScale: scale.value(at: time),
-            ignition: ignition.value(at: time)
+            tokenScale: scale.value(at: time)
         )
     }
 

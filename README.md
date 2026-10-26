@@ -4,10 +4,10 @@ A SwiftUI screen for the moment a user extends their streak, laid out like a tro
 fire badge in chrome and glossy enamel, then the date, the title "10 Day Streak" and a short description,
 over a charcoal stage that warms into gold towards the bottom, with a single share button.
 
-The badge winds up and flicks into two full spins, showing its chrome edge and its engraved chrome back:
-yesterday's count the first time the back goes by, today's the second. Its enamel flares as it lands and
-the gold at the bottom of the screen warms up; then the words and the share button arrive. After that it
-keeps turning a full circle every few seconds, like a trophy on a turntable.
+The badge winds up and flicks into two full spins, showing its chrome edge and the same artwork on its
+back, in its own colours from start to finish. As it lands the gold at the bottom of the screen warms up;
+then the words and the share button arrive. After that it keeps turning a full circle every few seconds,
+like a trophy on a turntable.
 
 <p align="center">
   <img src="docs/preview.gif" width="260" alt="Animated preview of the streak celebration">
@@ -16,9 +16,9 @@ keeps turning a full circle every few seconds, like a trophy on a turntable.
 </p>
 
 > The previews above were rendered from this package's `CelebrationTimeline`, `TokenProjection`,
-> `TokenLight`, `BadgeFinish` and `BadgeOutline` values (the same numbers the SwiftUI views read). The front
-> is the real badge artwork; the edge, the back and the fonts are close approximations of what SwiftUI
-> draws. For the real thing, open the package in Xcode and use the canvas preview.
+> `TokenLight` and `BadgeOutline` values (the same numbers the SwiftUI views read). Both faces are the real
+> badge artwork; the edge, the light and the fonts are close approximations of what SwiftUI draws. For the
+> real thing, open the package in Xcode and use the canvas preview.
 
 ## Run it in the Simulator
 
@@ -56,8 +56,7 @@ import StreakCelebration
 | Parameter | Default | |
 | --- | --- | --- |
 | `streak` | required | The streak after today's activity. |
-| `previousStreak` | `streak - 1` | The count on the badge's back the first time it goes by in the spin. |
-| `today` | `.now` | The day being celebrated, shown above the title and engraved on the back of the badge. |
+| `today` | `.now` | The day being celebrated, shown above the title. |
 | `message` | days to the next milestone | The paragraph under the title. |
 | `onClose` | no-op | Called from the close button. |
 
@@ -73,18 +72,17 @@ All timing lives in `Motion/CelebrationTimeline.swift`. Every layer is a pure fu
 
 | Time | Beat |
 | --- | --- |
-| 0.00s | The badge faces you, its enamel muted. The gold wash at the bottom of the screen is dim. |
+| 0.00s | The badge faces you in its full colours. The gold wash at the bottom of the screen is dim. |
 | 0.20s | Anticipation: it turns back a little and dips. |
-| 0.40s | **Spin** (light haptic): it flicks into two full turns, rising, so you see its chrome edge and its back go by. The back is engraved with yesterday's count on the first turn and today's on the second; the count changes while the badge is edge-on. |
-| 1.00s | The front comes round again. |
-| 1.55s | **Lands** (success haptic, heavy on a milestone day): it settles face-on, its enamel flares and settles to its full colour, and the gold wash warms up. From here it sways gently: the chrome glints and the enamel brightens a touch as it turns towards the light, and both fall into shade as it turns away (`Motion/TokenLight.swift`). |
+| 0.40s | **Spin** (light haptic): it flicks into two full turns, rising, so you see its chrome edge and its back go by. The back carries the same artwork as the front. |
+| 1.55s | **Lands** (success haptic, heavy on a milestone day): it settles face-on and the gold wash warms up. From here it sways gently, and a hot spot and a sheen slide across it as it turns towards and away from the light; the chrome edge glints as it catches it (`Motion/TokenLight.swift`). |
 | 1.85s | The date, title and description rise in. |
 | 2.60s | The share button arrives. |
 | 5.55s | It turns a full circle, and again every six seconds after that. |
 
-The badge's front is the artwork itself (`Resources/Badge.xcassets`). Everything that turns with it is
-drawn in SwiftUI: the chrome edge, the engraved chrome back, and a hot spot and sheen that slide across
-either face. They share one outline, a rounded hexagon fitted to the artwork (`Motion/BadgeOutline.swift`),
+Both faces of the badge are the artwork itself (`Resources/Badge.xcassets`), shown in its own colours.
+What turns with it is drawn in SwiftUI: the chrome edge, and a hot spot and sheen that slide across the
+face. They share one outline, a rounded hexagon fitted to the artwork (`Motion/BadgeOutline.swift`),
 which also cuts the artwork out. The badge is drawn as a projected solid rather than with stacked 3D layers:
 the visible face is squashed by the cosine of its angle and shifted by its thickness, and the edge is the
 outline stretched sideways (`Motion/TokenProjection.swift`). That keeps the depth order right at every angle.
@@ -128,4 +126,4 @@ that warms into gold at the bottom, a dark share pill on the gold and a rounded 
 and the title-and-description pairing under it come from the "Fire Streak" badge reference: a hexagon
 with raised chrome outlines and glossy red, orange and yellow enamel, a flame in the centre with an inner
 yellow flame and a white four-point sparkle, and rays out to the left and right. The spin with its thick
-edge and the count changing while the back is turned come from the second recording.
+edge comes from the second recording.
