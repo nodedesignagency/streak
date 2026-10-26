@@ -4,9 +4,9 @@ import SwiftUI
 ///
 /// The streak badge rises from below the screen at one and a half times its size, spinning in fast and
 /// winding down, and shrinks back to its own size as it settles at its place facing you, in one continuous
-/// movement, while the gold glows round the edges of the screen and behind the badge brighten. Then the
-/// date, title and description arrive, and the share button. After that it turns a full circle every few
-/// seconds, like a trophy on a turntable.
+/// movement, while the gold-and-orange glow round the edges of the screen brightens. Then the date, title
+/// and description arrive, and the share button. After that it turns a full circle every few seconds, like
+/// a trophy on a turntable.
 ///
 ///     .fullScreenCover(isPresented: $showStreak) {
 ///         StreakCelebrationView(streak: 10) { showStreak = false }
@@ -52,8 +52,8 @@ public struct StreakCelebrationView: View {
 
     public var body: some View {
         let clock = CelebrationClock(start: start, reduceMotion: reduceMotion)
-        // The glows are dim while the badge comes in and brighten as it lands.
-        let warmth = stage >= .landed ? 1.0 : 0.3
+        // The glow is dim while the badge comes in and brightens as it lands.
+        let glow = stage >= .landed ? 1.0 : 0.3
 
         VStack(spacing: 0) {
             HStack {
@@ -61,18 +61,10 @@ public struct StreakCelebrationView: View {
                 closeButton
             }
             .padding(.top, 8)
-            // Above the badge's spotlight, which spreads well past the badge.
-            .zIndex(1)
 
             Spacer(minLength: 8)
 
             TokenHero(clock: clock, palette: palette)
-                .background {
-                    BadgeSpotlight(palette: palette)
-                        .opacity(warmth)
-                        .animation(.easeOut(duration: 1.2), value: stage >= .landed)
-                        .allowsHitTesting(false)
-                }
 
             VStack(spacing: 10) {
                 Text(dateLine)
@@ -110,7 +102,7 @@ public struct StreakCelebrationView: View {
         .padding(.bottom, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
-            StageBackground(palette: palette, warmth: warmth)
+            StageBackground(palette: palette, glow: glow)
                 .animation(.easeOut(duration: 1.2), value: stage >= .landed)
                 .ignoresSafeArea()
         }
@@ -144,10 +136,7 @@ public struct StreakCelebrationView: View {
         ShareLink(item: shareMessage) {
             Text("Share your streak")
         }
-        .buttonStyle(PillButtonStyle(
-            fill: LinearGradient(colors: palette.buttonFill, startPoint: .top, endPoint: .bottom),
-            labelColor: palette.buttonInk
-        ))
+        .buttonStyle(PillButtonStyle(fill: palette.button, labelColor: palette.buttonInk))
     }
 
     // MARK: Choreography
@@ -209,52 +198,30 @@ public struct StreakCelebrationView: View {
     }
 }
 
-/// Charcoal, with a soft gold glow just inside the edges of the screen, brightest along the top.
+/// Charcoal, with a soft glow just inside the edges of the screen, gold along the top turning orange along
+/// the bottom.
 private struct StageBackground: View {
     var palette: StreakPalette
     /// How bright the glow is, 0...1.
-    var warmth: Double
+    var glow: Double
 
     var body: some View {
         ZStack {
             palette.background
             // A band centred on the screen's edge and blurred, so only its soft inner half shows: brightest
-            // right at the edge, half as bright about 15 points in, and gone by about 45.
+            // right at the edge, half as bright about 15 points in, and gone by about 40.
             RoundedRectangle(cornerRadius: HeroMetrics.screenCornerRadius, style: .continuous)
                 .stroke(
                     LinearGradient(
-                        colors: [palette.warmth[2].opacity(0.85), palette.warmth[2].opacity(0.7), palette.warmth[1].opacity(0.65)],
+                        colors: [palette.glow[0].opacity(0.9), palette.glow[1].opacity(0.9)],
                         startPoint: .top,
                         endPoint: .bottom
                     ),
-                    lineWidth: 16
+                    lineWidth: 28
                 )
-                .blur(radius: 16)
-                .opacity(warmth)
+                .blur(radius: 14)
+                .opacity(glow)
         }
-    }
-}
-
-/// The warm light behind the badge: a bright gold core fading through amber into the charcoal, centred a
-/// little above the badge as if it were lit from above.
-private struct BadgeSpotlight: View {
-    var palette: StreakPalette
-
-    var body: some View {
-        let radius = HeroMetrics.spotlightRadius
-        RadialGradient(
-            stops: [
-                .init(color: palette.warmth[2].opacity(0.7), location: 0),
-                .init(color: palette.warmth[1].opacity(0.42), location: 0.3),
-                .init(color: palette.warmth[0].opacity(0.32), location: 0.62),
-                .init(color: palette.warmth[0].opacity(0), location: 1),
-            ],
-            center: .center,
-            startRadius: 0,
-            endRadius: radius
-        )
-        .frame(width: radius * 2, height: radius * 2)
-        .offset(y: -HeroMetrics.spotlightRise)
     }
 }
 

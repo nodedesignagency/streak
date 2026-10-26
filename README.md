@@ -2,19 +2,19 @@
 
 A SwiftUI screen for the moment a user extends their streak, laid out like a trophy screen: a hexagonal
 fire badge in chrome and glossy enamel, then the date, the title "10 Day Streak" and a short description,
-on a charcoal stage lit in gold: a soft glow just inside the edges of the screen and a spotlight behind
-the badge. A single gold share button sits at the bottom.
+on a charcoal stage with a soft glow just inside the edges of the screen, gold along the top turning
+orange along the bottom. A single white share button sits at the bottom.
 
 The badge rises from below the screen at one and a half times its size, spinning in fast and winding
 down, and shrinks back to its own size as it settles at its place facing you, in one continuous movement,
-while the gold glows brighten. It shows its chrome edge and the same artwork on its
+while the glow round the edges brightens. It shows its chrome edge and the same artwork on its
 back, in its own colours from start to finish. Then the words and the share button arrive. After that it
 turns a full circle every few seconds, like a trophy on a turntable.
 
 <p align="center">
   <img src="docs/preview.gif" width="260" alt="Animated preview of the streak celebration">
   &nbsp;&nbsp;
-  <img src="docs/final-frame.png" width="260" alt="Settled state: a hexagonal chrome-and-enamel fire badge, the date, the title 10 Day Streak, a description and a gold Share your streak button on a charcoal stage, with a gold spotlight behind the badge and a soft gold glow round the edges of the screen">
+  <img src="docs/final-frame.png" width="260" alt="Settled state: a hexagonal chrome-and-enamel fire badge, the date, the title 10 Day Streak, a description and a white Share your streak button on a charcoal stage, with a soft glow round the edges of the screen, gold at the top and orange at the bottom">
 </p>
 
 > The previews above were rendered from this package's `CelebrationTimeline`, `TokenProjection`,
@@ -74,9 +74,9 @@ All timing lives in `Motion/CelebrationTimeline.swift`. Every layer is a pure fu
 
 | Time | Beat |
 | --- | --- |
-| 0.00s | **Rise** (light haptic): the badge starts 900 pt below its place, off the bottom of the screen, at 1.5× its size and turned 37° with its chrome edge on the right. It rises fast, slowing as it nears its place, and comes up spinning hard, its right side towards you: nearly five turns a second, winding down from there. The gold glows are dim. |
+| 0.00s | **Rise** (light haptic): the badge starts 900 pt below its place, off the bottom of the screen, at 1.5× its size and turned 37° with its chrome edge on the right. It rises fast, slowing as it nears its place, and comes up spinning hard, its right side towards you: nearly five turns a second, winding down from there. The glow round the edges is dim. |
 | 0.80s | Still rising and spinning, now about one and a half turns a second, it starts shrinking back to its own size. |
-| 1.80s | **Lands** (success haptic, heavy on a milestone day): the rise, the spin (nearly three turns in all) and the shrink come to rest together, so it settles at its place, facing you and at its own size, without stopping first. The gold glows brighten. |
+| 1.80s | **Lands** (success haptic, heavy on a milestone day): the rise, the spin (nearly three turns in all) and the shrink come to rest together, so it settles at its place, facing you and at its own size, without stopping first. The glow round the edges brightens. |
 | 1.95s | The date, title and description rise in. |
 | 2.55s | The share button arrives. |
 | 6.00s | It turns a full circle slowly and evenly, and again every six seconds after that. Between turns it holds perfectly still. |
@@ -109,12 +109,10 @@ Other details:
   badge itself is decorative because the title says the same thing.
 - The screen always plays on its own dark stage and sets `.preferredColorScheme(.dark)` so the status bar
   stays readable. Colours, including the badge's chrome, are in `Views/StreakPalette.swift`.
-- **The glows** are both in `StreakCelebrationView.swift`. `StageBackground` lays a gold band along the
-  screen's rounded edge and blurs it, so the light is brightest right at the edge and fades out about 45 pt
-  in, a little stronger at the top. `BadgeSpotlight` sits behind the badge itself, so it follows the badge
-  whatever the screen size: a radial glow with a bright gold core, centred a little above the badge and
-  fading into the charcoal by the title. Their sizes are in `HeroMetrics`. Both are dim while the badge
-  comes in and brighten as it lands.
+- **The glow** is `StageBackground` in `StreakCelebrationView.swift`: a 28 pt band along the screen's
+  rounded edge, blurred by 14 pt, so the light is brightest right at the edge and fades out about 40 pt in.
+  It runs from gold along the top to orange along the bottom (`StreakPalette.glow`). It is dim while the
+  badge comes in and brightens as it lands.
 - The description counts down to the next milestone (3, 7, 14, 21, 30, 50, 75, 100, 150, 200, 250, 300,
   365, then every 100 days) and calls it out on the day it's reached.
 
@@ -138,9 +136,8 @@ Run the tests with `swift test`. `Motion` and `Model` don't import SwiftUI, so t
 
 The screen follows the third and fourth reference recordings (a "Workout of the Day" trophy screen):
 a trophy that turns on its own, then a small date, a title and a short description on a charcoal stage,
-and a rounded close button. The glow comes from the "Raffle Battle" reference: light falling from above
-behind the hero, a soft rim of light just inside the screen's edge, the lower half dark, and the primary
-button filled in the accent colour; here all of it is in the screen's gold. The badge
+and a rounded close button. The glow comes from the "Raffle Battle" reference: a soft rim of light just
+inside the screen's edge, here in gold and orange. The badge
 and the title-and-description pairing under it come from the "Fire Streak" badge reference: a hexagon
 with raised chrome outlines and glossy red, orange and yellow enamel, a flame in the centre with an inner
 yellow flame and a white four-point sparkle, and rays out to the left and right. Once settled, the badge
