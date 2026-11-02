@@ -38,10 +38,15 @@ Then, whenever there are changes:
 cd ~/streak && git fetch origin && git checkout claude/great-maxwell-9wf1fn && git pull && ./scripts/run.sh
 ```
 
-`scripts/run.sh` builds `Demo/StreakDemo.xcodeproj`, boots an iPhone simulator, installs the app and launches
+`scripts/run.sh` boots an iPhone simulator, builds `Demo/StreakDemo.xcodeproj`, installs the app and launches
 it. The celebration plays on launch; change the streak and tap **Celebrate** to see it again. Pass a
-simulator name to pick one, for example `./scripts/run.sh "iPhone 16 Pro"`. You can also open
+simulator name to pick one, for example `./scripts/run.sh "iPhone 17 Pro"`. You can also open
 `Demo/StreakDemo.xcodeproj` in Xcode and press ⌘R.
+
+On a new Mac, the iOS simulator often isn't fully installed until Xcode has finished setting itself up. If
+no simulator will boot, the script says so and stops. Open Xcode once and let it install its components (or
+run `xcodebuild -runFirstLaunch`), install the iOS simulator in Xcode ▸ Settings ▸ Components (or run
+`xcodebuild -downloadPlatform iOS`), then run the script again.
 
 ## Use it
 
